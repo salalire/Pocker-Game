@@ -9,6 +9,7 @@ public class Game {
    private Card topCard;
    private boolean reversed=false;
    private int currentPlayerIndex=0;
+   private boolean skipNext=false;
 
     public Game(){
         deck=new Deck();
@@ -33,7 +34,7 @@ public class Game {
         Player firstPlayer= players.get(0);
         Card firstCard=firstPlayer.playCard(0);
         topCard=firstCard;
-        System.out.println("The First Player Is "+ firstPlayer.getName()+"Starts with "+toCard);
+        System.out.println("The First Player Is "+ firstPlayer.getName()+"Starts with "+topCard);
     }
 
 
@@ -56,6 +57,7 @@ public class Game {
             if (played!=null){
                 topCard=played;
                 System.out.println(currentPlayer.getName()+"Played"+played);
+                handleSpecialCard(played);
             }
             else {
                 System.out.println(currentPlayer.getName()+"Drow A Card");
@@ -68,12 +70,38 @@ public class Game {
         }
     }
 
+    public void handleSpecialCard(Card card){
+        if (card.getOrder()==Order.FIVE){
+            System.out.println("Next Player Will Be Skipped");
+            skipNext=true;
+        }
+
+        if (card.getOrder()==Order.SEVEN){
+            System.out.println("The Direction Of the Play Reversed");
+            reversed=!reversed;
+        }
+
+
+    }
+
+
     public void moveToNext(){
         if (!reversed){
             currentPlayerIndex=(currentPlayerIndex+1)%players.size();
         }
         else {
             currentPlayerIndex=(currentPlayerIndex -1 +players.size())%players.size();
+        }
+
+        if (skipNext){
+            System.out.println("Skipping "+players.get(currentPlayerIndex).getName());
+            if(!reversed){
+                currentPlayerIndex=(currentPlayerIndex+1) % players.size();
+            }
+            else {
+                currentPlayerIndex=(currentPlayerIndex-1 +players.size()) % players.size();
+            }
+            skipNext=false;
         }
     }
     public void startGame(){
