@@ -1,16 +1,11 @@
-# 🃏 Poker Game (Java + Maven)
+# 🃏 Custom Card Game (Java + Maven)
 
-## 📌 Project Goal
+## 📌 Project Overview
 
-This project is a **from-scratch implementation of a Poker game** using Java.
-The main objective is not just to build a working game, but to **understand every component deeply** and design it in a way that is **clean, extendable, and maintainable**.
+This project is a **from-scratch implementation of a custom card game** using Java.
+The goal is not only to build a working game but to **deeply understand system design, object-oriented programming, and scalable architecture**.
 
-This project will evolve step-by-step:
-
-* Start with core game logic (cards, players, deck)
-* Add game rules (Poker logic)
-* Introduce UI using JavaFX
-* Improve architecture for scalability (multiplayer, networking, etc.)
+The game started as a simple card-dealing program and is being gradually expanded into a **rule-based turn game** with advanced mechanics.
 
 ---
 
@@ -23,7 +18,10 @@ src/
  │   │   ├── game/
  │   │   │   ├── Card.java
  │   │   │   ├── Deck.java
- │   │   │   └── Player.java
+ │   │   │   ├── Player.java
+ │   │   │   ├── Game.java
+ │   │   │   ├── Suit.java
+ │   │   │   └── Rank.java
  │   │   │
  │   │   └── myapp/
  │   │       └── Main.java
@@ -31,191 +29,179 @@ src/
 
 ---
 
-## 📦 Package Design (WHY this structure?)
+## 🧠 Core Design Philosophy
 
-### 🔹 `game` package
+### 1. Separation of Responsibilities
 
-This package contains the **core domain logic** of the Poker game.
+Each class has a clear role:
 
-Think of it like the *real-world objects* in a card game:
-
-* `Card` → represents a single playing card
-* `Deck` → represents a full collection of cards
-* `Player` → represents a player in the game
-
-👉 These classes are **independent of UI or input/output**
-👉 This makes them reusable (console, GUI, network, etc.)
-
----
-
-### 🔹 `myapp` package
-
-This package controls the **application entry point**.
-
-* `Main.java` → starts the program
-
-👉 Keeps execution logic separate from game logic
-👉 Makes the system cleaner and easier to scale
+| Class           | Responsibility                            |
+| --------------- | ----------------------------------------- |
+| `Card`          | Represents a single card                  |
+| `Deck`          | Manages all cards (create, shuffle, deal) |
+| `Player`        | Stores player state and hand              |
+| `Game`          | Controls game flow and rules              |
+| `Suit` / `Rank` | Define valid card values                  |
 
 ---
 
-## 🧠 Core Classes (Detailed Explanation)
+### 2. Use of `enum` (Important Design Decision)
 
-### 🂡 Card.java
+Instead of using `String`, the project uses:
 
-Represents a single playing card.
+* `Suit` (HEARTS, SPADES, etc.)
+* `Rank` (A, TWO, THREE, ..., K)
 
-#### Responsibility:
+#### Why?
 
-* Store **rank** (Ace, King, etc.)
-* Store **suit** (Hearts, Spades, etc.)
-
-#### Why it exists:
-
-A Poker game is built on cards — this is the **smallest unit** of the system.
-
-#### Example:
-
-```java
-Card card = new Card("Ace", "Spades");
-```
+* Prevent invalid values
+* Improve readability
+* Enable easier rule implementation
+* Avoid bugs caused by typos
 
 ---
 
-### 🃏 Deck.java
+## 🧩 Current Game Logic (Implemented)
 
-Represents a full deck of cards.
+### 🎯 Game Setup
 
-#### Responsibility:
-
-* Create all 52 cards
-* Shuffle cards
-* Deal cards to players
-
-#### Why it exists:
-
-Instead of creating cards manually, the deck manages:
-
-* card generation
-* randomness
-* distribution
-
-#### Real-life analogy:
-
-Like a dealer holding and distributing cards.
+* Multiple players can join
+* Each player receives **6 cards**
+* First player receives **7 cards**
+* First player starts the game by dropping one card
 
 ---
 
-### 👤 Player.java
+### 🔄 Turn-Based System
 
-Represents a player in the game.
+* Game runs in a loop
+* Each player takes a turn
+* A player can:
 
-#### Responsibility:
-
-* Store player name
-* Store player's cards (hand)
-* Track player state (later: chips, bets, etc.)
-
-#### Why it exists:
-
-Poker is player-driven — each player must maintain their own state.
+    * Play a valid card
+    * Or draw a card if no valid move
 
 ---
 
-### 🚀 Main.java
+### 📜 Valid Move Rule
 
-Entry point of the application.
+A card can be played if:
 
-#### Responsibility:
-
-* Start the program
-* Create deck and players
-* Control game flow (temporary for now)
-
-#### Why it exists:
-
-Separates **execution logic** from **game logic**
+> It matches the **suit OR rank** of the current top card
 
 ---
 
-## ⚙️ Why Maven?
+### 🔁 Player Rotation Logic
 
-This project uses Maven to:
+The game supports:
 
-* Manage dependencies (JavaFX later)
-* Standardize project structure
-* Make builds consistent
-
-#### Future use:
-
-* Add JavaFX libraries
-* Add testing frameworks (JUnit)
-* Package the application
+* Forward direction
+* Reverse direction
+* Circular movement (no index errors)
 
 ---
 
-## 🔄 Current Status
+### 🟡 Special Rules (Implemented)
 
-✅ Maven project created
-✅ Basic package structure created
-✅ Core classes initialized:
+#### 🔸 Card: 5
 
-* Card
-* Deck
-* Player
+* Next player is **skipped**
 
-🚧 Next Steps:
+#### 🔸 Card: 7
 
-* Implement Card logic (rank & suit properly)
-* Build Deck (generate + shuffle)
-* Add Player hand system
-* Start simple game flow (deal cards)
+* Game direction is **reversed**
 
 ---
 
-## 🧩 Design Philosophy
+## ⚙️ Game Flow
 
-This project follows:
+1. Deck is created and shuffled
+2. Players are added
+3. Cards are distributed
+4. First player starts by playing a card
+5. Game enters loop:
 
-### 1. Separation of Concerns
+    * Check valid move
+    * Apply rules
+    * Move to next player
+6. Game ends when a player has **0 cards**
 
-Each class has **one responsibility only**
+---
 
-### 2. Scalability
+## 🧪 Current Features
 
-Code is written so we can later add:
+✅ Deck creation using enums
+✅ Card shuffling
+✅ Player hand management
+✅ Turn-based gameplay
+✅ Valid move checking
+✅ Skip rule (5)
+✅ Reverse rule (7)
+✅ Circular player movement
 
+---
+
+## 🚧 Features Not Yet Implemented
+
+* Multi-card drop for 7
+* Ace of Spades penalty logic
+* Jack (J) and 8 control rules
+* “Crazy” penalty (last card rule)
+* User input (currently auto-play logic)
 * GUI (JavaFX)
-* Multiplayer (Sockets)
-* AI players
-
-### 3. Real-World Modeling
-
-Classes mirror real-life objects:
-
-* Card → real card
-* Deck → real deck
-* Player → real player
 
 ---
 
-## 🛠️ Future Roadmap
+## 🛠️ Technical Notes
 
-* [ ] Implement card suits and ranks using enums
-* [ ] Implement deck shuffle logic
-* [ ] Deal cards to players
-* [ ] Add Poker rules (hand ranking)
-* [ ] Add betting system
-* [ ] Build JavaFX UI
-* [ ] Add multiplayer support
+### Why `Game` Class is Important
+
+Instead of putting logic in multiple places:
+
+* All rules are centralized in `Game`
+* This makes the system:
+
+    * Easier to debug
+    * Easier to extend
+    * Cleaner to maintain
 
 ---
 
+### Turn Movement Logic
 
+The game uses modular arithmetic to ensure:
+
+* No index out-of-bounds errors
+* Smooth circular player rotation
+
+---
+
+## 🚀 Next Steps
+
+Planned improvements:
+
+* [ ] Implement Ace of Spades penalty system
+* [ ] Add advanced rule chaining (stack effects)
+* [ ] Add user interaction (input-based play)
+* [ ] Implement full special card logic
+* [ ] Introduce JavaFX UI
+* [ ] Add multiplayer/network support
+
+---
+
+## 💡 Learning Focus
+
+This project emphasizes:
+
+* Deep understanding over fast implementation
+* Clean and scalable design
+* Real-world software architecture principles
+
+---
 
 ## ✍️ Author Notes
 
-This README will be updated as the project evolves.
-Each feature will be added with explanation to ensure **deep understanding**, not just implementation.
+This project is being built step-by-step with continuous improvements.
+
 
 ---
