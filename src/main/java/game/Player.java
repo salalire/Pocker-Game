@@ -19,4 +19,24 @@ public class Player {
         }
     }
 
+    public Card playCard(int cardIndex){
+        Card card= cardInPlayerHand.remove(cardIndex);
+        return card;
+    }
+    public int getHandSize(){
+        return cardInPlayerHand.size();
+    }
+
+    public Card playFirstValidCard(Card topCard){
+        for (int i=0;i<cardInPlayerHand.size();i++){
+            Card card=cardInPlayerHand.get(i);
+            if (card.getSuit()==topCard.getSuit()||card.getOrder()==topCard.getOrder()){
+                return cardInPlayerHand.remove(i);
+
+            }
+
+        }
+     return null;
+    }
+
 }

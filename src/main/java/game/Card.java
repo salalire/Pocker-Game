@@ -10,4 +10,10 @@ public class Card {
     public String toString(){
         return order+" of "+suit;
     }
+    public Suit getSuit(){
+        return suit;
+    }
+    public Order getOrder(){
+        return order;
+    }
 }
