@@ -5,10 +5,11 @@ import java.util.List;
 
 public class Game {
     private List<Player> players;
+    private List<Card> discardPile=new ArrayList<>();
    private Deck deck;
    private Card topCard;
    private boolean reversed=false;
-   private int currentPlayerIndex=0;
+   private int currentPlayerIndex=1;
    private boolean skipNext=false;
    private boolean activeAce=false;
    private int pendingPenality=0;
@@ -23,20 +24,58 @@ public class Game {
 
     }
 
+    private Card drawCard() {
+        if (deck.isEmpty()) {
+            reshuffleDeck();
+        }
+
+        if (deck.isEmpty()) {
+            return null; // no cards left even after reshuffle
+        }
+
+        return deck.dealCard();
+    }
+
+
+
+    private void reshuffleDeck() {
+        System.out.println("Reshuffling discard pile...");
+
+        if (discardPile.size() <= 1) {
+            System.out.println("Not enough cards to reshuffle. Game ends.");
+            return;
+        }
+
+        // Keep top card
+        Card top = discardPile.remove(discardPile.size() - 1);
+
+        // Move rest to deck
+        deck.cards.addAll(discardPile);
+        deck.shuffle();
+
+        // Reset discard pile
+        discardPile.clear();
+        discardPile.add(top);
+    }
+
+
     public void dealCards(){
         for(Player player :players){
             for (int i=0;i<6;i++){
-                player.receiveCards(deck.dealCard());
+                player.receiveCards(drawCard());
             }
-            players.get(0).receiveCards(deck.dealCard());
+
         }
+        players.get(0).receiveCards(drawCard());
+
     }
 
     public void firstMove(){
         Player firstPlayer= players.get(0);
         Card firstCard=firstPlayer.playCard(0);
         topCard=firstCard;
-        System.out.println("The First Player Is "+ firstPlayer.getName()+"Starts with "+topCard);
+        discardPile.add(topCard);
+        System.out.println("The First Player Is "+ firstPlayer.getName()+" Starts with "+topCard);
     }
 
 
@@ -52,7 +91,7 @@ public class Game {
         while (true) {
             Player currentPlayer = players.get(currentPlayerIndex);
             System.out.println("Current Card: " + topCard);
-            System.out.println(currentPlayer.getName() + "'s Turn");
+            System.out.println(currentPlayer.getName() + "  's Turn");
             currentPlayer.showCardInHand();
 
             if (activeAce){
@@ -67,7 +106,9 @@ public class Game {
                 }
                 else {
                     for (int i=0;i<pendingPenality;i++){
-                        currentPlayer.receiveCards(deck.dealCard());
+                        Card drawn = drawCard();
+                        if (drawn == null) break;
+                        currentPlayer.receiveCards(drawn);
                     }
                     System.out.println(currentPlayer.getName()+" Draw "+pendingPenality+" Cards");
                     activeAce=false;
@@ -82,15 +123,19 @@ public class Game {
             Card played=currentPlayer.playFirstValidCard(topCard);
             if (played!=null){
                 topCard=played;
-                System.out.println(currentPlayer.getName()+"Played"+played);
+                discardPile.add(played);
+                System.out.println(currentPlayer.getName()+" Played "+played);
                 handleSpecialCard(played);
             }
             else {
-                System.out.println(currentPlayer.getName()+"Drow A Card");
-                currentPlayer.receiveCards(deck.dealCard());
+                System.out.println(currentPlayer.getName()+" Drow A Card");
+                Card drawn = drawCard();
+                if (drawn == null) break;
+                currentPlayer.receiveCards(drawn);
             }
             if (currentPlayer.getHandSize()==0){
-                System.out.println(currentPlayer.getName()+"Wins the Game");
+                System.out.println(currentPlayer.getName()+"  Wins the Game");
+                break;
             }
             moveToNext();
         }

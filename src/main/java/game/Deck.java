@@ -15,6 +15,10 @@ public class Deck {
         Collections.shuffle(cards);
     }
 
+    public boolean isEmpty(){
+        return cards.isEmpty();
+    }
+
     public Card dealCard(){
         return cards.remove(cards.size()-1);
     }
