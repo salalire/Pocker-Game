@@ -10,6 +10,8 @@ public class Game {
    private boolean reversed=false;
    private int currentPlayerIndex=0;
    private boolean skipNext=false;
+   private boolean activeAce=false;
+   private int pendingPenality=0;
 
     public Game(){
         deck=new Deck();
@@ -53,6 +55,30 @@ public class Game {
             System.out.println(currentPlayer.getName() + "'s Turn");
             currentPlayer.showCardInHand();
 
+            if (activeAce){
+                System.out.println(currentPlayer.getName()+"Under Ace of Spades Penality!");
+                Card defenceCard=currentPlayer.getDefence(Suit.Spades,Order.TWO);
+                if (defenceCard!=null){
+                    currentPlayer.dropCard(defenceCard);
+                    System.out.println(currentPlayer.getName()+ " Defended Himself with Two of Spades");
+                    pendingPenality=7;
+                    moveToNext();
+                    continue;
+                }
+                else {
+                    for (int i=0;i<pendingPenality;i++){
+                        currentPlayer.receiveCards(deck.dealCard());
+                    }
+                    System.out.println(currentPlayer.getName()+" Draw "+pendingPenality+" Cards");
+                    activeAce=false;
+                    pendingPenality=0;
+                    moveToNext();
+                    continue;
+                }
+
+            }
+
+
             Card played=currentPlayer.playFirstValidCard(topCard);
             if (played!=null){
                 topCard=played;
@@ -79,6 +105,10 @@ public class Game {
         if (card.getOrder()==Order.SEVEN){
             System.out.println("The Direction Of the Play Reversed");
             reversed=!reversed;
+        }
+        if(card.getOrder()==Order.ONE && card.getSuit()==Suit. Spades){
+            activeAce=true;
+            pendingPenality=5;
         }
 
 

@@ -39,4 +39,17 @@ public class Player {
      return null;
     }
 
+    public Card getDefence(Suit suit,Order order){
+        for (Card defence:cardInPlayerHand){
+            if (defence.getSuit()==suit && defence.getOrder()== order){
+                return defence;
+            }
+        }
+       return null;
+    }
+
+    public void dropCard(Card dropped){
+        cardInPlayerHand.remove(dropped);
+    }
+
 }
