@@ -2,6 +2,7 @@ package game;
 import java.util.*;
 public class Player {
     private String name;
+    private Suit forcedSuit=null;
     public Player(String name ){
         this.name=name;
     }
@@ -19,6 +20,13 @@ public class Player {
         }
     }
 
+
+    public List<Card> getHand(){
+        return cardInPlayerHand;
+    }
+
+
+
     public Card playCard(int cardIndex){
         Card card= cardInPlayerHand.remove(cardIndex);
         return card;
@@ -27,19 +35,26 @@ public class Player {
         return cardInPlayerHand.size();
     }
 
-    public Card playFirstValidCard(Card topCard){
-        for (int i=0;i<cardInPlayerHand.size();i++){
-            Card card=cardInPlayerHand.get(i);
-            if (card.getSuit()==topCard.getSuit()||card.getOrder()==topCard.getOrder()){
-                return cardInPlayerHand.remove(i);
+//    public Card playFirstValidCard(Card topCard){
+//        for (int i=0;i<cardInPlayerHand.size();i++){
+//            Card card=cardInPlayerHand.get(i);
+//            if (forcedSuit != null){
+//                if (card.getSuit() == forcedSuit ||
+//                        card.getOrder() == topCard.getOrder()){
+//                    return card;
+//                }
+//            } else {
+//                if (card.getSuit() == topCard.getSuit() ||
+//                        card.getOrder() == topCard.getOrder()){
+//                    return card;
+//                }
+//            }
+//
+//        }
+//     return null;
+//    }
 
-            }
-
-        }
-     return null;
-    }
-
-    public Card getDefence(Suit suit,Order order){
+    public Card getDefence(Order order, Suit suit){
         for (Card defence:cardInPlayerHand){
             if (defence.getSuit()==suit && defence.getOrder()== order){
                 return defence;
@@ -48,8 +63,21 @@ public class Player {
        return null;
     }
 
+
+    public Card getDefence(Order order){
+        for (Card c : cardInPlayerHand){
+            if (c.getOrder() == order){
+                return c;
+            }
+        }
+        return null;
+    }
+
     public void dropCard(Card dropped){
         cardInPlayerHand.remove(dropped);
     }
 
 }
+
+
+

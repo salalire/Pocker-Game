@@ -13,6 +13,11 @@ public class Game {
    private boolean skipNext=false;
    private boolean activeAce=false;
    private int pendingPenality=0;
+   private boolean activeTwo=false;
+   private int pendingTwo=0;
+   private boolean changePlay=false;
+   private Suit forcedSuit=null;
+
 
     public Game(){
         deck=new Deck();
@@ -96,7 +101,7 @@ public class Game {
 
             if (activeAce){
                 System.out.println(currentPlayer.getName()+"Under Ace of Spades Penality!");
-                Card defenceCard=currentPlayer.getDefence(Suit.Spades,Order.TWO);
+                Card defenceCard=currentPlayer.getDefence(Order.TWO,Suit.Spades);
                 if (defenceCard!=null){
                     currentPlayer.dropCard(defenceCard);
                     System.out.println(currentPlayer.getName()+ " Defended Himself with Two of Spades");
@@ -119,12 +124,49 @@ public class Game {
 
             }
 
+            if (activeTwo){
+                System.out.println(currentPlayer.getName() + " is under TWO penalty!");
 
-            Card played=currentPlayer.playFirstValidCard(topCard);
+                Card defence = currentPlayer.getDefence(Order.TWO);
+
+                if (defence != null){
+                    currentPlayer.dropCard(defence);
+                    topCard = defence;
+                    discardPile.add(defence);
+
+                    System.out.println(currentPlayer.getName() + " Dropped TWO!");
+
+                    pendingTwo += 2;
+                    moveToNext();
+                    continue;
+                } else {
+                    for (int i = 0; i < pendingTwo; i++){
+                        Card drawn = drawCard();
+                        if (drawn == null) break;
+                        currentPlayer.receiveCards(drawn);
+                    }
+
+                    System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
+
+                    activeTwo = false;
+                    pendingTwo = 0;
+
+                    moveToNext();
+                    continue;
+                }
+            }
+
+
+
+            Card played=findPlayableCard(currentPlayer);
             if (played!=null){
+                currentPlayer.dropCard(played);
                 topCard=played;
                 discardPile.add(played);
                 System.out.println(currentPlayer.getName()+" Played "+played);
+                if (forcedSuit != null){
+                    forcedSuit = null;
+                }
                 handleSpecialCard(played);
             }
             else {
@@ -155,8 +197,24 @@ public class Game {
             activeAce=true;
             pendingPenality=5;
         }
+        if (card.getOrder()==Order.TWO){
+            activeTwo=true;
+            pendingTwo+=2;
+        }
+        if (card.getOrder() == Order.J || card.getOrder() == Order.EIGHT){
+            forcedSuit = chooseSuit();
+            System.out.println("Suit changed to " + forcedSuit);
+        }
 
 
+    }
+
+
+
+    private Suit chooseSuit(){
+        System.out.println("Choosing new suit...");
+
+        return Suit.values()[(int)(Math.random() * Suit.values().length)];
     }
 
 
@@ -179,6 +237,28 @@ public class Game {
             skipNext=false;
         }
     }
+
+
+    private Card findPlayableCard(Player player){
+        for (Card card : player.getHand()){
+
+            if (forcedSuit != null){
+                if (card.getSuit() == forcedSuit ||
+                        card.getOrder() == topCard.getOrder()){
+                    return card;
+                }
+            } else {
+                if (card.getSuit() == topCard.getSuit() ||
+                        card.getOrder() == topCard.getOrder()){
+                    return card;
+                }
+            }
+        }
+        return null;
+    }
+
+
+
     public void startGame(){
         deck.shuffle();
         dealCards();
