@@ -29,6 +29,11 @@ public class Game {
 
     }
 
+
+    public Card getTopCard(){
+        return topCard;
+    }
+
     private Card drawCard() {
         if (deck.isEmpty()) {
             reshuffleDeck();
@@ -262,8 +267,6 @@ public class Game {
     public void startGame(){
         deck.shuffle();
         dealCards();
-        showPlayerCards();
         firstMove();
-        playGame();
     }
 }
