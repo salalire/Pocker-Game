@@ -6,7 +6,34 @@ import javafx.scene.layout.BorderPane;
 import javax.swing.*;
 import java.awt.*;
 
+
 public class MainUi {
+
+    private static void refreshCards(JPanel centerPanel, Game game, JLabel currentCardLabel){
+        centerPanel.removeAll();
+
+        for (Card card : game.getCard()){
+            JButton cardButton = new JButton(card.toString());
+
+            cardButton.addActionListener(e -> {
+                boolean success = game.playCard(card);
+
+                if (success){
+                    currentCardLabel.setText("Current Card: " + game.getTopCard());
+                    refreshCards(centerPanel, game, currentCardLabel);
+                } else {
+                    currentCardLabel.setText("Invalid Move!");
+                }
+            });
+
+            centerPanel.add(cardButton);
+        }
+
+        centerPanel.revalidate();
+        centerPanel.repaint();
+    }
+
+
     public static void main(String[] args){
 
         Game game=new Game();
@@ -32,26 +59,16 @@ public class MainUi {
 
         JPanel bottomPanel=new JPanel();
         JButton draw=new JButton("Draw");
+        draw.addActionListener(e->{
+            game.drawForCurrentPlayer();
+           refreshCards(centerPanel,game,topLabel);
+        });
         JButton play=new JButton("Play");
         bottomPanel.add(draw);
         bottomPanel.add(play);
 
         centerPanel.setLayout(new FlowLayout());
-        for (Card card:game.getCard()){
-            JButton cardButton=new JButton(card.toString());
-            cardButton.addActionListener(e->{
-                boolean isValidMove=game.playCard(card);
-                if (isValidMove){
-                    topLabel.setText("Current Card: "+game.getTopCard());
-                }
-                else{
-                    topLabel.setText("Invalid move!");
-                }
-            });
-            centerPanel.add(cardButton);
-        }
-
-
+        refreshCards(centerPanel, game, topLabel);
 
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(centerPanel,BorderLayout.CENTER);

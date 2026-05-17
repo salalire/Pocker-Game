@@ -43,6 +43,14 @@ public class Game {
     }
 
 
+    public void drawForCurrentPlayer(){
+        Card drawn = drawCard();
+
+        if (drawn != null){
+            getCurrentPlayer().receiveCards(drawn);
+        }
+    }
+
 
 
     private Card drawCard() {
