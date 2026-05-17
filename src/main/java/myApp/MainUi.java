@@ -1,4 +1,5 @@
 package myApp;
+import game.Card;
 import game.Game;
 import javafx.scene.layout.BorderPane;
 
@@ -36,11 +37,16 @@ public class MainUi {
         bottomPanel.add(play);
 
         centerPanel.setLayout(new FlowLayout());
-        for (int i=1;i<7;i++){
-            JButton cardButton=new JButton("Card "+i);
-            int cardNumber=i;
+        for (Card card:game.getCard()){
+            JButton cardButton=new JButton(card.toString());
             cardButton.addActionListener(e->{
-               topLabel.setText("Played Card "+cardNumber);
+                boolean isValidMove=game.playCard(card);
+                if (isValidMove){
+                    topLabel.setText("Current Card: "+game.getTopCard());
+                }
+                else{
+                    topLabel.setText("Invalid move!");
+                }
             });
             centerPanel.add(cardButton);
         }

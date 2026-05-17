@@ -34,6 +34,17 @@ public class Game {
         return topCard;
     }
 
+    public List<Card> getCard(){
+        return getCurrentPlayer().getHand();
+    }
+
+    public Player getCurrentPlayer(){
+        return players.get(currentPlayerIndex);
+    }
+
+
+
+
     private Card drawCard() {
         if (deck.isEmpty()) {
             reshuffleDeck();
@@ -260,6 +271,28 @@ public class Game {
             }
         }
         return null;
+    }
+
+    private boolean isValidMove(Card card){
+        if (forcedSuit!=null){
+            return card.getSuit()==forcedSuit||card.getOrder()==topCard.getOrder();
+        }
+
+        return card.getSuit()==topCard.getSuit()||card.getOrder()==topCard.getOrder();
+    }
+
+    public boolean playCard(Card card){
+        Player player=getCurrentPlayer();
+        if (isValidMove(card)){
+            player.dropCard(card);
+            topCard=card;
+            discardPile.add(card);
+            handleSpecialCard(card);
+            moveToNext();
+            return true;
+
+        }
+        return false;
     }
 
 
