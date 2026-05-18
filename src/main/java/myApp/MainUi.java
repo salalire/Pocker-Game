@@ -12,6 +12,7 @@ public class MainUi {
     private static void refreshCards(JPanel centerPanel, Game game, JLabel currentCardLabel,JLabel currentPlayer){
         centerPanel.removeAll();
 
+
         for (Card card : game.getCard()){
             JButton cardButton = new JButton(card.toString());
 
@@ -20,7 +21,8 @@ public class MainUi {
 
                 if (success){
                     currentCardLabel.setText("Current Card: " + game.getTopCard());
-                    game.moveToNext();
+                    while (game.handleSpecialCardForCurrentPlayer()) {
+                    }
                     refreshCards(centerPanel, game, currentCardLabel,currentPlayer);
                 } else {
                     currentCardLabel.setText("Invalid Move!");
@@ -67,30 +69,38 @@ public class MainUi {
         JButton pass = new JButton("Pass");
 
         pass.addActionListener(e->{
+            game.setHasDrawn(false);
             game.moveToNext();
-            refreshCards(centerPanel,game,topLabel,currentPlayer);
-        });
-
-
-        draw.addActionListener(e->{
-            Card drawn = game.drawForCurrentPlayer();
-
-            if (drawn != null){
-
-                boolean canPlay = game.isValidMove(drawn);
-
-                if (!canPlay){
-                    game.moveToNext();
-                }
+            while (game.handleSpecialCardForCurrentPlayer()) {
             }
             refreshCards(centerPanel,game,topLabel,currentPlayer);
         });
 
 
+        draw.addActionListener(e -> {
 
-        JButton play=new JButton("Play");
+            if (game.hasDrawn()){
+                topLabel.setText("You already drew! Play or pass.");
+                return;
+            }
+            Card drawn = game.drawForCurrentPlayer();
+
+            if (drawn != null){
+                game.setHasDrawn(true);
+
+                if (game.isValidMove(drawn)){
+                    topLabel.setText("You drew a playable card!");
+                }
+                while (game.handleSpecialCardForCurrentPlayer()) {
+
+                }
+            }
+            refreshCards(centerPanel, game, topLabel, currentPlayer);
+        });
+
+
+
         bottomPanel.add(draw);
-        bottomPanel.add(play);
         bottomPanel.add(pass);
 
         centerPanel.setLayout(new FlowLayout());

@@ -17,6 +17,7 @@ public class Game {
    private int pendingTwo=0;
    private boolean changePlay=false;
    private Suit forcedSuit=null;
+    private boolean hasDrawn = false;
 
 
     public Game(){
@@ -28,6 +29,15 @@ public class Game {
         players.add(new Player(name));
 
     }
+
+    public void setHasDrawn(boolean value){
+        hasDrawn = value;
+    }
+
+    public boolean hasDrawn(){
+        return hasDrawn;
+    }
+
 
 
     public Card getTopCard(){
@@ -121,105 +131,104 @@ public class Game {
     }
 
 
-    public void showPlayerCards(){
-        for (Player player:players){
-            System.out.println(player.getName() +" Cards");
-            player.showCardInHand();
-            System.out.println();
-        }
-    }
-
-    public void playGame() {
-        while (true) {
-            Player currentPlayer = players.get(currentPlayerIndex);
-            System.out.println("Current Card: " + topCard);
-            System.out.println(currentPlayer.getName() + "  's Turn");
-            currentPlayer.showCardInHand();
-
-            if (activeAce){
-                System.out.println(currentPlayer.getName()+"Under Ace of Spades Penality!");
-                Card defenceCard=currentPlayer.getDefence(Order.TWO,Suit.Spades);
-                if (defenceCard!=null){
-                    currentPlayer.dropCard(defenceCard);
-                    System.out.println(currentPlayer.getName()+ " Defended Himself with Two of Spades");
-                    pendingPenality=7;
-                    moveToNext();
-                    continue;
-                }
-                else {
-                    for (int i=0;i<pendingPenality;i++){
-                        Card drawn = drawCard();
-                        if (drawn == null) break;
-                        currentPlayer.receiveCards(drawn);
-                    }
-                    System.out.println(currentPlayer.getName()+" Draw "+pendingPenality+" Cards");
-                    activeAce=false;
-                    pendingPenality=0;
-                    moveToNext();
-                    continue;
-                }
-
-            }
-
-            if (activeTwo){
-                System.out.println(currentPlayer.getName() + " is under TWO penalty!");
-
-                Card defence = currentPlayer.getDefence(Order.TWO);
-
-                if (defence != null){
-                    currentPlayer.dropCard(defence);
-                    topCard = defence;
-                    discardPile.add(defence);
-
-                    System.out.println(currentPlayer.getName() + " Dropped TWO!");
-
-                    pendingTwo += 2;
-                    moveToNext();
-                    continue;
-                } else {
-                    for (int i = 0; i < pendingTwo; i++){
-                        Card drawn = drawCard();
-                        if (drawn == null) break;
-                        currentPlayer.receiveCards(drawn);
-                    }
-
-                    System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
-
-                    activeTwo = false;
-                    pendingTwo = 0;
-
-                    moveToNext();
-                    continue;
-                }
-            }
-
-
-
-            Card played=findPlayableCard(currentPlayer);
-            if (played!=null){
-                currentPlayer.dropCard(played);
-                topCard=played;
-                discardPile.add(played);
-                System.out.println(currentPlayer.getName()+" Played "+played);
-                if (forcedSuit != null){
-                    forcedSuit = null;
-                }
-                handleSpecialCard(played);
-            }
-            else {
-                System.out.println(currentPlayer.getName()+" Drow A Card");
-                Card drawn = drawCard();
-                if (drawn == null) break;
-                currentPlayer.receiveCards(drawn);
-            }
-            if (currentPlayer.getHandSize()==0){
-                System.out.println(currentPlayer.getName()+"  Wins the Game");
-                break;
-            }
-            moveToNext();
-        }
-    }
-
+//    public void showPlayerCards(){
+//        for (Player player:players){
+//            System.out.println(player.getName() +" Cards");
+//            player.showCardInHand();
+//            System.out.println();
+//        }
+//    }
+//    public void playGame() {
+//        while (true) {
+//            Player currentPlayer = players.get(currentPlayerIndex);
+//            System.out.println("Current Card: " + topCard);
+//            System.out.println(currentPlayer.getName() + "  's Turn");
+//            currentPlayer.showCardInHand();
+//
+//            if (activeAce){
+//                System.out.println(currentPlayer.getName()+"Under Ace of Spades Penality!");
+//                Card defenceCard=currentPlayer.getDefence(Order.TWO,Suit.Spades);
+//                if (defenceCard!=null){
+//                    currentPlayer.dropCard(defenceCard);
+//                    System.out.println(currentPlayer.getName()+ " Defended Himself with Two of Spades");
+//                    pendingPenality=7;
+//                    moveToNext();
+//                    continue;
+//                }
+//                else {
+//                    for (int i=0;i<pendingPenality;i++){
+//                        Card drawn = drawCard();
+//                        if (drawn == null) break;
+//                        currentPlayer.receiveCards(drawn);
+//                    }
+//                    System.out.println(currentPlayer.getName()+" Draw "+pendingPenality+" Cards");
+//                    activeAce=false;
+//                    pendingPenality=0;
+//                    moveToNext();
+//                    continue;
+//                }
+//
+//            }
+//
+//            if (activeTwo){
+//                System.out.println(currentPlayer.getName() + " is under TWO penalty!");
+//
+//                Card defence = currentPlayer.getDefence(Order.TWO);
+//
+//                if (defence != null){
+//                    currentPlayer.dropCard(defence);
+//                    topCard = defence;
+//                    discardPile.add(defence);
+//
+//                    System.out.println(currentPlayer.getName() + " Dropped TWO!");
+//
+//                    pendingTwo += 2;
+//                    moveToNext();
+//                    continue;
+//                } else {
+//                    for (int i = 0; i < pendingTwo; i++){
+//                        Card drawn = drawCard();
+//                        if (drawn == null) break;
+//                        currentPlayer.receiveCards(drawn);
+//                    }
+//
+//                    System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
+//
+//                    activeTwo = false;
+//                    pendingTwo = 0;
+//
+//                    moveToNext();
+//                    continue;
+//                }
+//            }
+//
+//
+//
+//            Card played=findPlayableCard(currentPlayer);
+//            if (played!=null){
+//                currentPlayer.dropCard(played);
+//                topCard=played;
+//                discardPile.add(played);
+//                System.out.println(currentPlayer.getName()+" Played "+played);
+//                if (forcedSuit != null){
+//                    forcedSuit = null;
+//                }
+//                handleSpecialCard(played);
+//            }
+//            else {
+//                System.out.println(currentPlayer.getName()+" Drow A Card");
+//                Card drawn = drawCard();
+//                if (drawn == null) break;
+//                currentPlayer.receiveCards(drawn);
+//            }
+//            if (currentPlayer.getHandSize()==0){
+//                System.out.println(currentPlayer.getName()+"  Wins the Game");
+//                break;
+//            }
+//            moveToNext();
+//        }
+//    }
+//
     public void handleSpecialCard(Card card){
         if (card.getOrder()==Order.FIVE){
             System.out.println("Next Player Will Be Skipped");
@@ -276,23 +285,23 @@ public class Game {
     }
 
 
-    private Card findPlayableCard(Player player){
-        for (Card card : player.getHand()){
-
-            if (forcedSuit != null){
-                if (card.getSuit() == forcedSuit ||
-                        card.getOrder() == topCard.getOrder()){
-                    return card;
-                }
-            } else {
-                if (card.getSuit() == topCard.getSuit() ||
-                        card.getOrder() == topCard.getOrder()){
-                    return card;
-                }
-            }
-        }
-        return null;
-    }
+//    private Card findPlayableCard(Player player){
+//        for (Card card : player.getHand()){
+//
+//            if (forcedSuit != null){
+//                if (card.getSuit() == forcedSuit ||
+//                        card.getOrder() == topCard.getOrder()){
+//                    return card;
+//                }
+//            } else {
+//                if (card.getSuit() == topCard.getSuit() ||
+//                        card.getOrder() == topCard.getOrder()){
+//                    return card;
+//                }
+//            }
+//        }
+//        return null;
+//    }
 
 
     public boolean isValidMove(Card card){
@@ -304,6 +313,77 @@ public class Game {
     }
 
 
+    public boolean handleSpecialCardForCurrentPlayer(){
+        Player currentPlayer=getCurrentPlayer();
+        if (activeAce){
+            System.out.println(currentPlayer.getName()+" is under ace penality ");
+            Card defenceCard=currentPlayer.getDefence(Order.TWO,Suit.Spades);
+
+            if (defenceCard != null){
+                currentPlayer.dropCard(defenceCard);
+                topCard = defenceCard;
+                discardPile.add(defenceCard);
+                System.out.println(currentPlayer.getName()+" defended with Two of Spades");
+                pendingPenality = 7;
+//                moveToNext();
+                return true;
+            } else {
+                for (int i = 0; i < pendingPenality; i++){
+                    Card drawn = drawCard();
+                    if (drawn == null) break;
+                    currentPlayer.receiveCards(drawn);
+                }
+                System.out.println(currentPlayer.getName()+" draws "+pendingPenality);
+                activeAce = false;
+                pendingPenality = 0;
+                hasDrawn = false;
+//                moveToNext();
+                return true;
+            }
+        }
+
+
+        if (activeTwo){
+                System.out.println(currentPlayer.getName() + " is under TWO penalty!");
+
+                Card defence = currentPlayer.getDefence(Order.TWO);
+
+                if (defence != null){
+                    currentPlayer.dropCard(defence);
+                    topCard = defence;
+                    discardPile.add(defence);
+
+                    System.out.println(currentPlayer.getName() + " Dropped TWO!");
+
+                    pendingTwo += 2;
+//                    moveToNext();
+                    return true;
+                } else {
+                    for (int i = 0; i < pendingTwo; i++){
+                        Card drawn = drawCard();
+                        if (drawn == null) break;
+                        currentPlayer.receiveCards(drawn);
+                    }
+
+                    System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
+
+                    activeTwo = false;
+                    pendingTwo = 0;
+                    hasDrawn=false;
+//                    moveToNext();
+                    return true;
+
+                }
+            }
+
+
+        return false;
+    }
+
+
+
+
+
 
     public boolean playCard(Card card){
         Player player=getCurrentPlayer();
@@ -312,6 +392,7 @@ public class Game {
             topCard=card;
             discardPile.add(card);
             handleSpecialCard(card);
+            hasDrawn = false;
             moveToNext();
             return true;
 
