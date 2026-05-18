@@ -43,13 +43,26 @@ public class Game {
     }
 
 
-    public void drawForCurrentPlayer(){
+    public Card drawForCurrentPlayer(){
         Card drawn = drawCard();
 
         if (drawn != null){
             getCurrentPlayer().receiveCards(drawn);
         }
+
+        return drawn;
     }
+
+
+//    public boolean isPlayable(Card card){
+//        if (forcedSuit != null){
+//            return card.getSuit() == forcedSuit ||
+//                    card.getOrder() == topCard.getOrder();
+//        }
+//
+//        return card.getSuit() == topCard.getSuit() ||
+//                card.getOrder() == topCard.getOrder();
+//    }
 
 
 
@@ -281,13 +294,16 @@ public class Game {
         return null;
     }
 
-    private boolean isValidMove(Card card){
+
+    public boolean isValidMove(Card card){
         if (forcedSuit!=null){
             return card.getSuit()==forcedSuit||card.getOrder()==topCard.getOrder();
         }
 
         return card.getSuit()==topCard.getSuit()||card.getOrder()==topCard.getOrder();
     }
+
+
 
     public boolean playCard(Card card){
         Player player=getCurrentPlayer();
