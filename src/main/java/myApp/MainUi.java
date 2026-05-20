@@ -12,6 +12,16 @@ import java.awt.*;
 public class MainUi {
 
     private static void refreshCards(JPanel centerPanel, Game game, JLabel currentCardLabel,JLabel currentPlayer){
+        if (game.isGameOver()){
+            centerPanel.removeAll();
+            JLabel winLabel = new JLabel(game.getWinner().getName() + " Wins!");
+            centerPanel.add(winLabel);
+            centerPanel.revalidate();
+            centerPanel.repaint();
+            return;
+        }
+
+
         centerPanel.removeAll();
 
 
@@ -29,6 +39,11 @@ public class MainUi {
                     }
                     currentCardLabel.setText("Current Card: " + game.getTopCard());
                     while (game.handleSpecialCardForCurrentPlayer()) {
+                    }
+
+                    if (game.isGameOver()){
+                        refreshCards(centerPanel, game, currentCardLabel, currentPlayer);
+                        return;
                     }
                     refreshCards(centerPanel, game, currentCardLabel,currentPlayer);
                 } else {
@@ -69,7 +84,6 @@ public class MainUi {
         JPanel topPanel=new JPanel();
         JLabel topLabel=new JLabel("Current Card: "+game.getTopCard());
         JLabel currentPlayer=new JLabel();
-//        currentPlayer.setText(game.getCurrentPlayer().getName()+"'s Turn");
         topPanel.add(currentPlayer);
         topPanel.add(topLabel);
 
@@ -82,16 +96,21 @@ public class MainUi {
         JButton pass = new JButton("Pass");
 
         pass.addActionListener(e->{
+            if (game.isGameOver())return;
             game.setHasDrawn(false);
             game.moveToNext();
             while (game.handleSpecialCardForCurrentPlayer()) {
+            }
+            if (game.isGameOver()){
+                refreshCards(centerPanel, game, topLabel, currentPlayer);
+                return;
             }
             refreshCards(centerPanel,game,topLabel,currentPlayer);
         });
 
 
         draw.addActionListener(e -> {
-
+             if (game.isGameOver())return;
             if (game.hasDrawn()){
                 topLabel.setText("You already drew! Play or pass.");
                 return;
@@ -106,6 +125,10 @@ public class MainUi {
                 }
                 while (game.handleSpecialCardForCurrentPlayer()) {
 
+                }
+                if (game.isGameOver()){
+                    refreshCards(centerPanel, game, topLabel, currentPlayer);
+                    return;
                 }
             }
             refreshCards(centerPanel, game, topLabel, currentPlayer);
@@ -122,7 +145,6 @@ public class MainUi {
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(centerPanel,BorderLayout.CENTER);
         frame.add(bottomPanel,BorderLayout.SOUTH);
-//        frame.add(currentPlayer,BorderLayout.NORTH);
         frame.setVisible(true);
 
     }
