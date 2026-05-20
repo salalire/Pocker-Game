@@ -1,6 +1,8 @@
 package myApp;
 import game.Card;
 import game.Game;
+import game.Order;
+import game.Suit;
 import javafx.scene.layout.BorderPane;
 
 import javax.swing.*;
@@ -20,6 +22,11 @@ public class MainUi {
                 boolean success = game.playCard(card);
 
                 if (success){
+                    if (card.getOrder()== Order.EIGHT||card.getOrder()==Order.J){
+                        Suit chosenSuit=chooseSuit();
+                        game.setSuit(chosenSuit);
+                        currentCardLabel.setText("Suit Changed to "+chosenSuit);
+                    }
                     currentCardLabel.setText("Current Card: " + game.getTopCard());
                     while (game.handleSpecialCardForCurrentPlayer()) {
                     }
@@ -35,6 +42,12 @@ public class MainUi {
 
         centerPanel.revalidate();
         centerPanel.repaint();
+    }
+
+    private static Suit chooseSuit(){
+        String[] options={"Hearts","Clubs","Spades","Diamonds"};
+        int choice=JOptionPane.showOptionDialog(null,"Choose Suit","select Suit",JOptionPane.DEFAULT_OPTION,JOptionPane.INFORMATION_MESSAGE,null,options,options[0]);
+        return Suit.valueOf(options[choice]);
     }
 
 

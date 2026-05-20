@@ -248,20 +248,24 @@ public class Game {
             pendingTwo+=2;
         }
         if (card.getOrder() == Order.J || card.getOrder() == Order.EIGHT){
-            forcedSuit = chooseSuit();
-            System.out.println("Suit changed to " + forcedSuit);
+//            forcedSuit = chooseSuit();
+//            System.out.println("Suit changed to " + forcedSuit);
         }
 
 
     }
 
-
-
-    private Suit chooseSuit(){
-        System.out.println("Choosing new suit...");
-
-        return Suit.values()[(int)(Math.random() * Suit.values().length)];
+    public void setSuit(Suit suit){
+        this.forcedSuit=suit;
     }
+
+
+
+//    private Suit chooseSuit(){
+//        System.out.println("Choosing new suit...");
+//
+//        return Suit.values()[(int)(Math.random() * Suit.values().length)];
+//    }
 
 
     public void moveToNext(){
@@ -394,6 +398,9 @@ public class Game {
             handleSpecialCard(card);
             hasDrawn = false;
             moveToNext();
+            if (forcedSuit != null){
+                forcedSuit = null;
+            }
             return true;
 
         }
