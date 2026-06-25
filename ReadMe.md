@@ -120,7 +120,10 @@ The game supports:
 
 #### 🔸 Card: 7
 
-* Game direction is **reversed**
+* Game direction is **reversed** — **only when played alone**
+* Player may drop **up to 4 additional cards** alongside the 7 (max 5 cards total)
+* All extra cards must share the **same suit** as the 7
+* When bundled with extras, the 7 does **NOT** reverse direction — it acts purely as a carrier card
 
 #### 🔸 Ace of Spades
 
@@ -155,16 +158,16 @@ Solution:
 
 ---
 
-## 🖥️ UI Features (Swing)
+## 🖥️ UI Features (JavaFX)
 
-* Cards displayed as buttons
-* Click to play cards
-* Draw button → draw one card
-* Pass button → skip turn
-* Dynamic updates:
-    * Current player
-    * Top card
-    * Player hand
+* Green felt table background with gradient
+* Real card rendering with suit symbols (♥ ♦ ♠ ♣), rank labels, proper red/black colouring
+* Cards in hand lift on hover and are clickable
+* **Seven bundle mode**: click a 7 to enter bundle mode, then click same-suit cards to select extras, then click the 7 again to confirm the play
+* Draw button → draw one card per turn
+* Pass button → end your turn
+* Direction indicator (Clockwise / Counter-Clockwise)
+* Winner screen with trophy
 
 ---
 

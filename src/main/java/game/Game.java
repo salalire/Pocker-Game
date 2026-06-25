@@ -29,6 +29,18 @@ public class Game {
         return winner;
     }
 
+    public List<Player> getPlayers(){
+        return players;
+    }
+
+    public boolean isReversed(){
+        return reversed;
+    }
+
+    public int getCurrentPlayerIndex(){
+        return currentPlayerIndex;
+    }
+
 
     public Game(){
         deck=new Deck();
@@ -189,6 +201,81 @@ public class Game {
     }
 
 
+    /**
+     * Returns whether a penalty is currently active for the current player.
+     */
+    public boolean hasPendingPenalty() {
+        return activeAce || activeTwo;
+    }
+
+    public boolean isActiveAce() { return activeAce; }
+    public boolean isActiveTwo() { return activeTwo; }
+    public int getPendingPenalty() { return activeAce ? pendingPenality : pendingTwo; }
+
+    /**
+     * Called when the current player has chosen to DEFEND against a TWO penalty
+     * by dropping one of their own 2s. Returns true if defence was valid.
+     */
+    public boolean defendWithTwo(Card defence) {
+        if (!activeTwo) return false;
+        if (defence.getOrder() != Order.TWO) return false;
+        Player player = getCurrentPlayer();
+        if (!player.getHand().contains(defence)) return false;
+
+        player.dropCard(defence);
+        topCard = defence;
+        discardPile.add(defence);
+        pendingTwo += 2;
+        // stack penalty passes on — do NOT move to next here
+        return true;
+    }
+
+    /**
+     * Called when the current player has chosen to DEFEND against an ACE OF SPADES
+     * by dropping their 2 of Spades. Returns true if defence was valid.
+     */
+    public boolean defendWithTwoOfSpades(Card defence) {
+        if (!activeAce) return false;
+        if (defence.getOrder() != Order.TWO || defence.getSuit() != Suit.Spades) return false;
+        Player player = getCurrentPlayer();
+        if (!player.getHand().contains(defence)) return false;
+
+        player.dropCard(defence);
+        topCard = defence;
+        discardPile.add(defence);
+        pendingPenality = 7;
+        // stack penalty passes on
+        return true;
+    }
+
+    /**
+     * Current player accepts the penalty (draws cards) and their turn ends.
+     * Moves to next player automatically.
+     */
+    public void acceptPenalty() {
+        Player player = getCurrentPlayer();
+        if (activeAce) {
+            for (int i = 0; i < pendingPenality; i++) {
+                Card drawn = drawCard();
+                if (drawn == null) break;
+                player.receiveCards(drawn);
+            }
+            activeAce = false;
+            pendingPenality = 0;
+        } else if (activeTwo) {
+            for (int i = 0; i < pendingTwo; i++) {
+                Card drawn = drawCard();
+                if (drawn == null) break;
+                player.receiveCards(drawn);
+            }
+            activeTwo = false;
+            pendingTwo = 0;
+        }
+        hasDrawn = false;
+        moveToNext();
+    }
+
+
     public boolean handleSpecialCardForCurrentPlayer(){
         Player currentPlayer=getCurrentPlayer();
         if (activeAce){
@@ -201,7 +288,6 @@ public class Game {
                 discardPile.add(defenceCard);
                 System.out.println(currentPlayer.getName()+" defended with Two of Spades");
                 pendingPenality = 7;
-//                moveToNext();
                 return true;
             } else {
                 for (int i = 0; i < pendingPenality; i++){
@@ -213,51 +299,52 @@ public class Game {
                 activeAce = false;
                 pendingPenality = 0;
                 hasDrawn = false;
-//                moveToNext();
                 return true;
             }
         }
 
-
         if (activeTwo){
-                System.out.println(currentPlayer.getName() + " is under TWO penalty!");
+            System.out.println(currentPlayer.getName() + " is under TWO penalty!");
+            Card defence = currentPlayer.getDefence(Order.TWO);
 
-                Card defence = currentPlayer.getDefence(Order.TWO);
-
-                if (defence != null){
-                    currentPlayer.dropCard(defence);
-                    topCard = defence;
-                    discardPile.add(defence);
-
-                    System.out.println(currentPlayer.getName() + " Dropped TWO!");
-
-                    pendingTwo += 2;
-//                    moveToNext();
-                    return true;
-                } else {
-                    for (int i = 0; i < pendingTwo; i++){
-                        Card drawn = drawCard();
-                        if (drawn == null) break;
-                        currentPlayer.receiveCards(drawn);
-                    }
-
-                    System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
-
-                    activeTwo = false;
-                    pendingTwo = 0;
-                    hasDrawn=false;
-//                    moveToNext();
-                    return true;
-
+            if (defence != null){
+                currentPlayer.dropCard(defence);
+                topCard = defence;
+                discardPile.add(defence);
+                System.out.println(currentPlayer.getName() + " Dropped TWO!");
+                pendingTwo += 2;
+                return true;
+            } else {
+                for (int i = 0; i < pendingTwo; i++){
+                    Card drawn = drawCard();
+                    if (drawn == null) break;
+                    currentPlayer.receiveCards(drawn);
                 }
+                System.out.println(currentPlayer.getName() + " draws " + pendingTwo + " cards!");
+                activeTwo = false;
+                pendingTwo = 0;
+                hasDrawn = false;
+                return true;
             }
-
+        }
 
         return false;
     }
 
 
 
+
+    /**
+     * "Crazy" challenge: when someone calls crazy on the current player
+     * (e.g. after an invalid play attempt), that player draws 2 cards.
+     */
+    public void applyCrazyPenalty() {
+        Player player = getCurrentPlayer();
+        for (int i = 0; i < 2; i++) {
+            Card drawn = drawCard();
+            if (drawn != null) player.receiveCards(drawn);
+        }
+    }
 
     public boolean playCard(Card card){
         Player player=getCurrentPlayer();
@@ -281,6 +368,73 @@ public class Game {
 
         }
         return false;
+    }
+
+    /**
+     * Play a 7 along with up to 4 additional cards of the same suit.
+     * The 7 must be a valid move. All extra cards must share the same suit as the 7.
+     * The direction-reverse rule still applies once (triggered by the 7).
+     *
+     * @param seven      the 7 card being played
+     * @param extraCards additional same-suit cards to drop (max 4)
+     * @return true if the play was accepted, false otherwise
+     */
+    /**
+     * Play a 7 along with up to 4 additional cards of the same suit.
+     * The 7 must be a valid move. All extra cards must share the same suit as the 7.
+     *
+     * Key rule: when the 7 is bundled with extras it does NOT reverse direction
+     * (the reverse only fires when the 7 is played alone).
+     *
+     * @param seven      the 7 card being played
+     * @param extraCards additional same-suit cards to drop alongside it (max 4)
+     * @return true if the play was accepted, false otherwise
+     */
+    public boolean playSevenWithExtras(Card seven, List<Card> extraCards){
+        if (seven.getOrder() != Order.SEVEN) return false;
+        if (!isValidMove(seven)) return false;
+        if (extraCards.size() > 4) return false;
+
+        Suit sevenSuit = seven.getSuit();
+        for (Card c : extraCards){
+            if (c.getSuit() != sevenSuit) return false;
+        }
+
+        Player player = getCurrentPlayer();
+        boolean bundled = !extraCards.isEmpty();
+
+        // Drop the 7 — only trigger reverse when played alone
+        player.dropCard(seven);
+        topCard = seven;
+        discardPile.add(seven);
+        hasDrawn = false;
+
+        if (bundled){
+            // Bundled: no reverse — skip the reverse part of handleSpecialCard
+            System.out.println("7 bundled with extras — direction NOT reversed");
+        } else {
+            // Solo 7: full special-card handling (reverse fires)
+            handleSpecialCard(seven);
+        }
+
+        // Drop each extra card (no special effects from extras)
+        for (Card c : extraCards){
+            player.dropCard(c);
+            topCard = c;
+            discardPile.add(c);
+        }
+
+        if (player.getHandSize() == 0){
+            gameOver = true;
+            winner = player;
+            return true;
+        }
+
+        moveToNext();
+        if (forcedSuit != null){
+            forcedSuit = null;
+        }
+        return true;
     }
 
 
