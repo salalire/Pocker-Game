@@ -206,9 +206,12 @@ public class MainUi extends Application {
 
         Button btn = new Button("Select");
         btn.setFont(Font.font("Verdana", FontWeight.BOLD, 13));
-        btn.setTextFill(Color.WHITE);
+        btn.setTextFill(Color.web("#1a1a1a"));   // dark text — readable on any card colour
         btn.setPrefWidth(130);
-        btn.setBackground(new Background(new BackgroundFill(Color.web(dark), new CornerRadii(8), Insets.EMPTY)));
+        btn.setBackground(new Background(new BackgroundFill(Color.web("#ffffff"), new CornerRadii(8), Insets.EMPTY)));
+        btn.setEffect(new DropShadow(4, Color.color(0,0,0,0.35)));
+        btn.setOnMouseEntered(e -> btn.setBackground(new Background(new BackgroundFill(Color.web("#e0e0e0"), new CornerRadii(8), Insets.EMPTY))));
+        btn.setOnMouseExited( e -> btn.setBackground(new Background(new BackgroundFill(Color.web("#ffffff"), new CornerRadii(8), Insets.EMPTY))));
         btn.setOnAction(action);
 
         card.getChildren().addAll(h, d, btn);
@@ -914,9 +917,9 @@ public class MainUi extends Application {
         HBox.setHgrow(scroll, Priority.ALWAYS);
         handPanel.setMaxWidth(Double.MAX_VALUE);
 
-        drawBtn = buildActionButton("Draw Card","#1976D2","#0d47a1");
-        passBtn = buildActionButton("Pass Turn","#e65100","#bf360c");
-        Button crazyBtn = buildActionButton("CRAZY!","#6a1b9a","#4a148c");
+        drawBtn = buildActionButton("Draw Card","#2196F3","#1565C0");
+        passBtn = buildActionButton("Pass Turn","#FF9800","#E65100");
+        Button crazyBtn = buildActionButton("CRAZY!","#8e24aa","#6a1b9a");
 
         drawBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) { if (penaltyActive) { client.acceptPenalty(); myTurn=false; penaltyActive=false; drawBtn.setText("Draw Card"); } else client.drawCard(); } else onDraw(); });
         passBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) client.pass(); else onPass(); });
@@ -1037,21 +1040,13 @@ public class MainUi extends Application {
     private Button buildActionButton(String text,String base,String hover){
         Button b=new Button(text);
         b.setFont(Font.font("Verdana",FontWeight.BOLD,13));
-        // Use dark text on bright buttons, white on dark buttons
-        Color bg = Color.web(base);
-        // Luminance check: if button is bright, use dark text
-        double lum = 0.299*bg.getRed() + 0.587*bg.getGreen() + 0.114*bg.getBlue();
-        b.setTextFill(lum > 0.55 ? Color.web("#1a1a1a") : Color.WHITE);
+        b.setTextFill(Color.WHITE);
         b.setPrefWidth(145);
         b.setPrefHeight(40);
-        b.setBackground(new Background(new BackgroundFill(bg,new CornerRadii(8),Insets.EMPTY)));
-        b.setEffect(new DropShadow(4,Color.color(0,0,0,0.4)));
-        b.setOnMouseEntered(e->{
-            b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY)));
-        });
-        b.setOnMouseExited(e->{
-            b.setBackground(new Background(new BackgroundFill(bg,new CornerRadii(8),Insets.EMPTY)));
-        });
+        b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY)));
+        b.setEffect(new DropShadow(4,Color.BLACK));
+        b.setOnMouseEntered(e->b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY))));
+        b.setOnMouseExited(e->b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY))));
         return b;
     }
     private Background feltBackground(){return new Background(new BackgroundFill(new LinearGradient(0,0,1,1,true,CycleMethod.NO_CYCLE,new Stop(0,FELT_DARK),new Stop(0.5,FELT_MID),new Stop(1,FELT_LIGHT)),CornerRadii.EMPTY,Insets.EMPTY));}
