@@ -569,14 +569,35 @@ public class MainUi extends Application {
     }
 
     private VBox opponentInfoBox(String name, int count) {
-        VBox box = new VBox(4); box.setAlignment(Pos.CENTER);
-        box.setPadding(new Insets(8, 14, 8, 14));
-        box.setBackground(new Background(new BackgroundFill(Color.color(0,0,0,0.3), new CornerRadii(10), Insets.EMPTY)));
-        Label nl = new Label(name); nl.setTextFill(Color.WHITE); nl.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
-        HBox fd = new HBox(-18); fd.setAlignment(Pos.CENTER);
-        for (int i = 0; i < Math.min(count, 5); i++) fd.getChildren().add(buildCardBack());
-        Label cl = new Label(count + " cards"); cl.setTextFill(GOLD); cl.setFont(Font.font("Verdana", 11));
-        box.getChildren().addAll(nl, fd, cl);
+        VBox box = new VBox(6);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(10, 18, 10, 18));
+        // Semi-transparent dark card with rounded corners
+        box.setBackground(new Background(new BackgroundFill(
+                Color.color(0, 0, 0, 0.45), new CornerRadii(12), Insets.EMPTY)));
+        box.setEffect(new DropShadow(6, Color.BLACK));
+
+        Label nameLabel = new Label(name);
+        nameLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 13));
+        nameLabel.setTextFill(Color.WHITE);
+
+        // Fanned face-down cards
+        HBox faceDown = new HBox(-22);
+        faceDown.setAlignment(Pos.CENTER);
+        int show = Math.min(count, 6);
+        for (int i = 0; i < show; i++) {
+            StackPane back = buildCardBack();
+            // Slight fan effect
+            back.setRotate((i - show / 2.0) * 4);
+            faceDown.getChildren().add(back);
+        }
+
+        // Card count badge
+        Label countLabel = new Label(count + " cards");
+        countLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 11));
+        countLabel.setTextFill(GOLD);
+
+        box.getChildren().addAll(nameLabel, faceDown, countLabel);
         return box;
     }
 
@@ -590,11 +611,15 @@ public class MainUi extends Application {
         if (game.hasPendingPenalty()) { showPenaltyPrompt(); return; }
 
         playerNameLabel.setText(current.getName() + "'s Turn");
-        statusLabel.setText("");
+        statusLabel.setText("Top card: " + game.getTopCard());
         directionLabel.setText(game.isReversed() ? "<<  Counter-Clockwise" : ">>  Clockwise");
+
+        // Update discard pile — centred on the table
         discardArea.getChildren().clear();
         discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
+
         updateOpponentLabels();
+
         handArea.getChildren().clear();
         pendingSevenCard = null; sevenExtras.clear();
         sevenBundleBar.setVisible(false); sevenBundleBar.setManaged(false);
@@ -613,25 +638,27 @@ public class MainUi extends Application {
         if (game.isGameOver()) { showLocalWinner(); return; }
         int idx = game.getCurrentPlayerIndex();
         if (isAi != null && idx < isAi.length && isAi[idx]) {
-            // Delay so the human can see what happened
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.millis(900));
+            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.millis(1000));
             pause.setOnFinished(e -> {
                 String result = AiPlayer.takeTurn(game);
-                if (statusLabel != null) statusLabel.setText(result);
-                // Update discard
-                discardArea.getChildren().clear();
-                discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
+                // Always show what the AI did AND the new top card
+                String topInfo = "  |  Top card: " + game.getTopCard();
+                if (statusLabel != null) statusLabel.setText(result + topInfo);
+                // Update discard pile visually
+                if (discardArea != null) {
+                    discardArea.getChildren().clear();
+                    discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
+                }
+                if (directionLabel != null) {
+                    directionLabel.setText(game.isReversed() ? "<<  Counter-Clockwise" : ">>  Clockwise");
+                }
                 updateOpponentLabels();
-                runAiTurnsIfNeeded(); // keep going if next is also AI
+                if (game.isGameOver()) { showLocalWinner(); return; }
+                runAiTurnsIfNeeded();
             });
             pause.play();
         } else {
-            // Human's turn
-            if (mode == GameMode.LOCAL_MULTIPLAYER) {
-                showHandOff(game.getCurrentPlayer().getName(), () -> refresh());
-            } else {
-                refresh();
-            }
+            refresh();
         }
     }
 
@@ -796,10 +823,26 @@ public class MainUi extends Application {
         BorderPane bp = new BorderPane();
         bp.setBackground(feltBackground());
         bp.setTop(buildTopBar());
-        // Centre grows to fill all available space
-        StackPane centre = buildCentreArea();
+
+        // Centre: opponents top + discard in true centre
+        BorderPane centre = new BorderPane();
+        centre.setBackground(new Background(new BackgroundFill(Color.TRANSPARENT, CornerRadii.EMPTY, Insets.EMPTY)));
+
+        // Opponents strip at the top of the centre area
+        opponentBar = new HBox(24);
+        opponentBar.setAlignment(Pos.CENTER);
+        opponentBar.setPadding(new Insets(14, 20, 10, 20));
+        centre.setTop(opponentBar);
+
+        // Discard pile truly centred
+        discardArea = new StackPane();
+        discardArea.setAlignment(Pos.CENTER);
+        discardArea.setPrefSize(130, 185);
+        centre.setCenter(discardArea);
+
         bp.setCenter(centre);
-        // Bottom has a fixed minimum height so buttons never disappear
+        VBox.setVgrow(centre, Priority.ALWAYS);
+
         VBox bottom = buildBottomArea();
         bottom.setMinHeight(220);
         bp.setBottom(bottom);
@@ -813,10 +856,12 @@ public class MainUi extends Application {
         title.setTextFill(GOLD); title.setEffect(new DropShadow(4, GOLD_DARK));
         Button menuBtn = new Button("Main Menu");
         menuBtn.setFont(Font.font("Verdana", FontWeight.BOLD, 11));
-        menuBtn.setTextFill(Color.WHITE);
-        menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#333333"), new CornerRadii(6), Insets.EMPTY)));
-        menuBtn.setOnMouseEntered(e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#555555"), new CornerRadii(6), Insets.EMPTY))));
-        menuBtn.setOnMouseExited( e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#333333"), new CornerRadii(6), Insets.EMPTY))));
+        menuBtn.setTextFill(Color.web("#1a1a1a"));
+        menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#f0f0f0"), new CornerRadii(6), Insets.EMPTY)));
+        menuBtn.setPadding(new Insets(5, 12, 5, 12));
+        menuBtn.setEffect(new DropShadow(3, Color.color(0,0,0,0.3)));
+        menuBtn.setOnMouseEntered(e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#cccccc"), new CornerRadii(6), Insets.EMPTY))));
+        menuBtn.setOnMouseExited( e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#f0f0f0"), new CornerRadii(6), Insets.EMPTY))));
         menuBtn.setOnAction(e -> { if(server!=null){server.stop();server=null;} if(client!=null){client.disconnect();client=null;} showModeSelect(); });
         HBox titleRow = new HBox(title);
         titleRow.setAlignment(Pos.CENTER);
@@ -835,6 +880,7 @@ public class MainUi extends Application {
         return bar;
     }
 
+    // buildCentreArea kept for reference — opponents and discard are now built inline in buildGameRoot()
     private StackPane buildCentreArea() {
         StackPane stack = new StackPane(); stack.setAlignment(Pos.CENTER);
         discardArea = new StackPane(); discardArea.setAlignment(Pos.CENTER); discardArea.setPrefSize(130,185);
@@ -868,9 +914,9 @@ public class MainUi extends Application {
         HBox.setHgrow(scroll, Priority.ALWAYS);
         handPanel.setMaxWidth(Double.MAX_VALUE);
 
-        drawBtn = buildActionButton("Draw Card","#2196F3","#1565C0");
-        passBtn = buildActionButton("Pass Turn","#FF9800","#E65100");
-        Button crazyBtn = buildActionButton("CRAZY!","#8e24aa","#6a1b9a");
+        drawBtn = buildActionButton("Draw Card","#1976D2","#0d47a1");
+        passBtn = buildActionButton("Pass Turn","#e65100","#bf360c");
+        Button crazyBtn = buildActionButton("CRAZY!","#6a1b9a","#4a148c");
 
         drawBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) { if (penaltyActive) { client.acceptPenalty(); myTurn=false; penaltyActive=false; drawBtn.setText("Draw Card"); } else client.drawCard(); } else onDraw(); });
         passBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) client.pass(); else onPass(); });
@@ -988,7 +1034,26 @@ public class MainUi extends Application {
     }
     private HBox centreRow(javafx.scene.Node... nodes){HBox r=new HBox(10);r.setAlignment(Pos.CENTER);r.getChildren().addAll(nodes);return r;}
     private TextField styledField(String def){TextField tf=new TextField(def);tf.setFont(Font.font("Verdana",14));tf.setMaxWidth(260);tf.setStyle("-fx-background-radius:8;-fx-padding:8;");return tf;}
-    private Button buildActionButton(String text,String base,String hover){Button b=new Button(text);b.setFont(Font.font("Verdana",FontWeight.BOLD,13));b.setTextFill(Color.WHITE);b.setPrefWidth(145);b.setPrefHeight(40);b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY)));b.setEffect(new DropShadow(4,Color.BLACK));b.setOnMouseEntered(e->b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY))));b.setOnMouseExited(e->b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY))));return b;}
+    private Button buildActionButton(String text,String base,String hover){
+        Button b=new Button(text);
+        b.setFont(Font.font("Verdana",FontWeight.BOLD,13));
+        // Use dark text on bright buttons, white on dark buttons
+        Color bg = Color.web(base);
+        // Luminance check: if button is bright, use dark text
+        double lum = 0.299*bg.getRed() + 0.587*bg.getGreen() + 0.114*bg.getBlue();
+        b.setTextFill(lum > 0.55 ? Color.web("#1a1a1a") : Color.WHITE);
+        b.setPrefWidth(145);
+        b.setPrefHeight(40);
+        b.setBackground(new Background(new BackgroundFill(bg,new CornerRadii(8),Insets.EMPTY)));
+        b.setEffect(new DropShadow(4,Color.color(0,0,0,0.4)));
+        b.setOnMouseEntered(e->{
+            b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY)));
+        });
+        b.setOnMouseExited(e->{
+            b.setBackground(new Background(new BackgroundFill(bg,new CornerRadii(8),Insets.EMPTY)));
+        });
+        return b;
+    }
     private Background feltBackground(){return new Background(new BackgroundFill(new LinearGradient(0,0,1,1,true,CycleMethod.NO_CYCLE,new Stop(0,FELT_DARK),new Stop(0.5,FELT_MID),new Stop(1,FELT_LIGHT)),CornerRadii.EMPTY,Insets.EMPTY));}
 
     /**
