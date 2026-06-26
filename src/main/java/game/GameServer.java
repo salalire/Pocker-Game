@@ -4,9 +4,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -291,5 +294,81 @@ public class GameServer {
 
     public void stop() {
         try { serverSocket.close(); } catch (IOException ignored) {}
+    }
+
+    /**
+     * Returns the best local IP address for LAN/hotspot play.
+     *
+     * Strategy:
+     *   1. Scan all network interfaces.
+     *   2. Skip loopback (127.x), link-local (169.254.x), and virtual/inactive interfaces.
+     *   3. Prefer addresses in private ranges: 192.168.x.x, 10.x.x.x, 172.16-31.x.x
+     *   4. Prefer WiFi/WLAN interfaces over others (common on hotspot connections).
+     *   5. Fall back to InetAddress.getLocalHost() if nothing better is found.
+     *   6. Last resort: return "127.0.0.1".
+     */
+    public static String getLocalIp() {
+        String best = null;
+        int bestScore = -1;
+
+        try {
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                // Skip loopback, down, virtual, and point-to-point interfaces
+                if (ni.isLoopback() || !ni.isUp() || ni.isVirtual() || ni.isPointToPoint()) continue;
+
+                String name = ni.getName().toLowerCase();
+                String displayName = ni.getDisplayName().toLowerCase();
+
+                // Skip virtual adapters (VPN, Hyper-V, Docker, etc.)
+                if (displayName.contains("virtual") || displayName.contains("hyper-v")
+                        || displayName.contains("vmware") || displayName.contains("docker")
+                        || displayName.contains("loopback") || displayName.contains("bluetooth")) continue;
+
+                for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
+                    if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()) continue;
+                    // IPv4 only
+                    if (addr.getAddress().length != 4) continue;
+
+                    String ip = addr.getHostAddress();
+                    int score = scoreAddress(ip, name, displayName);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        best = ip;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        if (best != null) return best;
+
+        // Fallback: getLocalHost (may return 127.0.0.1 on some systems)
+        try { return InetAddress.getLocalHost().getHostAddress(); } catch (Exception ignored) {}
+        return "127.0.0.1";
+    }
+
+    /**
+     * Scores an IP/interface candidate. Higher = better.
+     * Hotspot/WiFi private addresses get the highest score.
+     */
+    private static int scoreAddress(String ip, String ifName, String displayName) {
+        int score = 0;
+
+        // Private range bonus
+        if (ip.startsWith("192.168.")) score += 30;
+        else if (ip.startsWith("10."))   score += 25;
+        else if (ip.matches("172\\.(1[6-9]|2[0-9]|3[01])\\..*")) score += 20;
+
+        // Hotspot / WiFi interface bonus (common names on Windows and Linux)
+        if (ifName.contains("wlan") || ifName.contains("wifi") || ifName.contains("wi-fi")
+                || displayName.contains("wi-fi") || displayName.contains("wireless")
+                || displayName.contains("wlan")) score += 20;
+
+        // Ethernet is good too
+        if (ifName.startsWith("eth") || displayName.contains("ethernet")) score += 10;
+
+        // 192.168.43.x is the Android hotspot default subnet — bonus
+        if (ip.startsWith("192.168.43.")) score += 5;
+
+        return score;
     }
 }

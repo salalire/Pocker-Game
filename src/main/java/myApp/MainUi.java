@@ -2,7 +2,9 @@ package myApp;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import game.AiPlayer;
@@ -341,8 +343,16 @@ public class MainUi extends Application {
         Label ipNote = new Label();
         ipNote.setTextFill(Color.LIGHTCYAN);
         ipNote.setFont(Font.font("Verdana", 13));
-        try { ipNote.setText("Your IP: " + InetAddress.getLocalHost().getHostAddress() + "  Port: " + GameServer.PORT); }
-        catch (Exception ex) { ipNote.setText("Port: " + GameServer.PORT); }
+        // Use the smart IP detector — works correctly over hotspot, WiFi, and LAN
+        String detectedIp = GameServer.getLocalIp();
+        ipNote.setText("Your IP: " + detectedIp + "   Port: " + GameServer.PORT);
+
+        // Also list all available IPs in a smaller label so user can confirm
+        Label allIpsNote = new Label(getAllLocalIps());
+        allIpsNote.setTextFill(Color.web("#cccccc"));
+        allIpsNote.setFont(Font.font("Verdana", 11));
+        allIpsNote.setWrapText(true);
+        allIpsNote.setMaxWidth(500);
 
         Label statusLbl = new Label("Press Start to begin hosting...");
         statusLbl.setTextFill(Color.LIGHTGRAY); statusLbl.setFont(Font.font("Verdana", 12));
@@ -367,7 +377,7 @@ public class MainUi extends Application {
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(myNameLbl, nameFld),
-                centreRow(countLbl, countSpin), ipNote, statusLbl, start, back);
+                centreRow(countLbl, countSpin), ipNote, allIpsNote, statusLbl, start, back);
         setScrollScene(page);
     }
 
@@ -980,6 +990,31 @@ public class MainUi extends Application {
     private TextField styledField(String def){TextField tf=new TextField(def);tf.setFont(Font.font("Verdana",14));tf.setMaxWidth(260);tf.setStyle("-fx-background-radius:8;-fx-padding:8;");return tf;}
     private Button buildActionButton(String text,String base,String hover){Button b=new Button(text);b.setFont(Font.font("Verdana",FontWeight.BOLD,13));b.setTextFill(Color.WHITE);b.setPrefWidth(145);b.setPrefHeight(40);b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY)));b.setEffect(new DropShadow(4,Color.BLACK));b.setOnMouseEntered(e->b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY))));b.setOnMouseExited(e->b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY))));return b;}
     private Background feltBackground(){return new Background(new BackgroundFill(new LinearGradient(0,0,1,1,true,CycleMethod.NO_CYCLE,new Stop(0,FELT_DARK),new Stop(0.5,FELT_MID),new Stop(1,FELT_LIGHT)),CornerRadii.EMPTY,Insets.EMPTY));}
+
+    /**
+     * Returns a string listing all active non-loopback IPv4 addresses on this machine.
+     * Shown on the host screen so the user can confirm which IP their friends should use.
+     */
+    private static String getAllLocalIps() {
+        StringBuilder sb = new StringBuilder("All network IPs on this device: ");
+        try {
+            boolean found = false;
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) continue;
+                for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
+                    if (addr.isLoopbackAddress() || addr.isLinkLocalAddress()) continue;
+                    if (addr.getAddress().length != 4) continue; // IPv4 only
+                    sb.append(ni.getDisplayName().split(" ")[0])
+                      .append(": ").append(addr.getHostAddress()).append("   ");
+                    found = true;
+                }
+            }
+            if (!found) sb.append("(none found)");
+        } catch (Exception e) {
+            sb.append("(error reading interfaces)");
+        }
+        return sb.toString();
+    }
 
     /** Wraps a VBox content page in a ScrollPane and sets it as the current scene root.
      *  This ensures setup screens never clip content when the window is small. */
