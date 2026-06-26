@@ -127,10 +127,11 @@ public class MainUi extends Application {
     // ═════════════════════════════════════════════════════════════════════════
 
     private void showModeSelect() {
+        // Use a ScrollPane so nothing clips even at small sizes
         VBox page = new VBox(30);
         page.setAlignment(Pos.CENTER);
         page.setBackground(feltBackground());
-        page.setPadding(new Insets(60));
+        page.setPadding(new Insets(40));
 
         Label title = new Label("CRAZY CARD GAME");
         title.setFont(Font.font("Georgia", FontWeight.BOLD, 42));
@@ -141,7 +142,7 @@ public class MainUi extends Application {
         sub.setFont(Font.font("Verdana", 16));
         sub.setTextFill(Color.WHITE);
 
-        HBox modeRow = new HBox(24);
+        HBox modeRow = new HBox(20);
         modeRow.setAlignment(Pos.CENTER);
 
         modeRow.getChildren().addAll(
@@ -150,21 +151,33 @@ public class MainUi extends Application {
                     "#2196F3", "#1565C0",
                     e -> showVsComputerSetup()),
             buildModeCard("Local Pass & Play",
-                    "Multiple players on\none device — pass it around",
+                    "Multiple players on\none device, pass it around",
                     "#27ae60", "#1e8449",
                     e -> showLocalSetup()),
-            buildModeCard("Online — Host",
+            buildModeCard("Online - Host",
                     "Host a game and invite\nfriends by IP address",
                     "#e67e22", "#ca6f1e",
                     e -> showOnlineHostSetup()),
-            buildModeCard("Online — Join",
+            buildModeCard("Online - Join",
                     "Join a game hosted\nby a friend",
                     "#8e44ad", "#6c3483",
                     e -> showOnlineJoinSetup())
         );
 
         page.getChildren().addAll(title, sub, modeRow);
-        primaryStage.setScene(new Scene(page, 1100, 750));
+
+        ScrollPane sp = new ScrollPane(page);
+        sp.setFitToWidth(true);
+        sp.setFitToHeight(true);
+        sp.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
+
+        Scene scene = primaryStage.getScene();
+        if (scene == null) {
+            scene = new Scene(sp, 1100, 750);
+        } else {
+            scene.setRoot(sp);
+        }
+        primaryStage.setScene(scene);
     }
 
     private Pane buildModeCard(String heading, String desc, String base, String dark,
@@ -217,7 +230,7 @@ public class MainUi extends Application {
         TextField humanName = styledField("You");
         HBox humanRow = centreRow(humanLbl, humanName);
 
-        Label aiLbl = new Label("Number of AI opponents (1–5):");
+        Label aiLbl = new Label("Number of AI opponents (1-5):");
         aiLbl.setTextFill(Color.WHITE);
         aiLbl.setFont(Font.font("Verdana", 13));
         Spinner<Integer> aiCount = new Spinner<>(1, 5, 2);
@@ -232,11 +245,11 @@ public class MainUi extends Application {
             startVsComputer(name, n);
         });
 
-        Button back = buildActionButton("Back", "#555", "#333");
+        Button back = buildActionButton("Back", "#555555", "#333333");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(humanRow, aiRow, start, back);
-        primaryStage.setScene(new Scene(page, 1100, 750));
+        setScrollScene(page);
     }
 
     private void startVsComputer(String humanName, int numAi) {
@@ -250,8 +263,8 @@ public class MainUi extends Application {
         }
         game.startGame();
         root = buildGameRoot();
-        primaryStage.setScene(new Scene(root, 1100, 750));
-        // Skip AI turns at start if needed, then show human's turn
+        // Reuse scene — just swap root
+        primaryStage.getScene().setRoot(root);
         runAiTurnsIfNeeded();
     }
 
@@ -296,15 +309,16 @@ public class MainUi extends Application {
             }
             game.startGame();
             root = buildGameRoot();
-            primaryStage.setScene(new Scene(root, 1100, 750));
+            primaryStage.getScene().setRoot(root);
+            // Local multiplayer: show hand-off before first turn
             showHandOff(game.getCurrentPlayer().getName(), () -> refresh());
         });
 
-        Button back = buildActionButton("Back", "#555", "#333");
+        Button back = buildActionButton("Back", "#555555", "#333333");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(countLbl, countSpin), nameFields, start, back);
-        primaryStage.setScene(new Scene(page, 1100, 750));
+        setScrollScene(page);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -341,21 +355,20 @@ public class MainUi extends Application {
                 server = new GameServer(total);
                 server.setLogCallback(msg -> Platform.runLater(() -> statusLbl.setText(msg)));
                 server.startAccepting();
-                statusLbl.setText("Hosting on port " + GameServer.PORT + " — waiting for " + (total-1) + " more player(s)...");
+                statusLbl.setText("Hosting on port " + GameServer.PORT + " - waiting for " + (total-1) + " more player(s)...");
                 start.setDisable(true);
-                // Connect as host client
                 connectAsOnlinePlayer(myName, "localhost", statusLbl);
             } catch (IOException ex) {
                 statusLbl.setText("Error: " + ex.getMessage());
             }
         });
 
-        Button back = buildActionButton("Back", "#555", "#333");
+        Button back = buildActionButton("Back", "#555555", "#333333");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(myNameLbl, nameFld),
                 centreRow(countLbl, countSpin), ipNote, statusLbl, start, back);
-        primaryStage.setScene(new Scene(page, 1100, 750));
+        setScrollScene(page);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -387,12 +400,12 @@ public class MainUi extends Application {
             connectAsOnlinePlayer(myName, ip, statusLbl);
         });
 
-        Button back = buildActionButton("Back", "#555", "#333");
+        Button back = buildActionButton("Back", "#555555", "#333333");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(nameLbl, nameFld),
                 centreRow(ipLbl, ipFld), statusLbl, join, back);
-        primaryStage.setScene(new Scene(page, 1100, 750));
+        setScrollScene(page);
     }
 
     private void connectAsOnlinePlayer(String name, String host, Label statusLbl) {
@@ -614,8 +627,10 @@ public class MainUi extends Application {
 
     private void advanceTurn() {
         if (mode == GameMode.LOCAL_MULTIPLAYER) {
+            // Only show hand-off screen in pass-and-play mode
             showHandOff(game.getCurrentPlayer().getName(), () -> refresh());
         } else {
+            // VS_COMPUTER: just run AI turns / show human's turn directly
             runAiTurnsIfNeeded();
         }
     }
@@ -771,21 +786,42 @@ public class MainUi extends Application {
         BorderPane bp = new BorderPane();
         bp.setBackground(feltBackground());
         bp.setTop(buildTopBar());
-        bp.setCenter(buildCentreArea());
-        bp.setBottom(buildBottomArea());
+        // Centre grows to fill all available space
+        StackPane centre = buildCentreArea();
+        bp.setCenter(centre);
+        // Bottom has a fixed minimum height so buttons never disappear
+        VBox bottom = buildBottomArea();
+        bottom.setMinHeight(220);
+        bp.setBottom(bottom);
         return bp;
     }
 
     private VBox buildTopBar() {
-        VBox bar = new VBox(4); bar.setAlignment(Pos.CENTER); bar.setPadding(new Insets(14,20,8,20));
-        Label title = new Label("CRAZY CARD GAME"); title.setFont(Font.font("Georgia", FontWeight.BOLD, 24));
+        VBox bar = new VBox(3); bar.setAlignment(Pos.CENTER); bar.setPadding(new Insets(10,20,6,20));
+        // Top row: title + main menu button
+        Label title = new Label("CRAZY CARD GAME"); title.setFont(Font.font("Georgia", FontWeight.BOLD, 22));
         title.setTextFill(GOLD); title.setEffect(new DropShadow(4, GOLD_DARK));
-        playerNameLabel = new Label(); playerNameLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 16)); playerNameLabel.setTextFill(Color.WHITE);
-        statusLabel = new Label(); statusLabel.setFont(Font.font("Verdana", 13)); statusLabel.setTextFill(Color.LIGHTYELLOW);
-        directionLabel = new Label(); directionLabel.setFont(Font.font("Verdana", 12)); directionLabel.setTextFill(Color.LIGHTCYAN);
+        Button menuBtn = new Button("Main Menu");
+        menuBtn.setFont(Font.font("Verdana", FontWeight.BOLD, 11));
+        menuBtn.setTextFill(Color.WHITE);
+        menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#333333"), new CornerRadii(6), Insets.EMPTY)));
+        menuBtn.setOnMouseEntered(e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#555555"), new CornerRadii(6), Insets.EMPTY))));
+        menuBtn.setOnMouseExited( e -> menuBtn.setBackground(new Background(new BackgroundFill(Color.web("#333333"), new CornerRadii(6), Insets.EMPTY))));
+        menuBtn.setOnAction(e -> { if(server!=null){server.stop();server=null;} if(client!=null){client.disconnect();client=null;} showModeSelect(); });
+        HBox titleRow = new HBox(title);
+        titleRow.setAlignment(Pos.CENTER);
+        // Put menu button on right
+        Region spacerL = new Region(); HBox.setHgrow(spacerL, Priority.ALWAYS);
+        Region spacerR = new Region(); HBox.setHgrow(spacerR, Priority.ALWAYS);
+        HBox fullTitleRow = new HBox(10, menuBtn, spacerL, title, spacerR);
+        fullTitleRow.setAlignment(Pos.CENTER_LEFT);
+
+        playerNameLabel = new Label(); playerNameLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 15)); playerNameLabel.setTextFill(Color.WHITE);
+        statusLabel = new Label(); statusLabel.setFont(Font.font("Verdana", 12)); statusLabel.setTextFill(Color.LIGHTYELLOW);
+        directionLabel = new Label(); directionLabel.setFont(Font.font("Verdana", 11)); directionLabel.setTextFill(Color.LIGHTCYAN);
         Region div = new Region(); div.setPrefHeight(2);
         div.setBackground(new Background(new BackgroundFill(new LinearGradient(0,0,1,0,true,CycleMethod.NO_CYCLE, new Stop(0,Color.TRANSPARENT),new Stop(0.5,GOLD),new Stop(1,Color.TRANSPARENT)), CornerRadii.EMPTY, Insets.EMPTY)));
-        bar.getChildren().addAll(title, playerNameLabel, statusLabel, directionLabel, div);
+        bar.getChildren().addAll(fullTitleRow, playerNameLabel, statusLabel, directionLabel, div);
         return bar;
     }
 
@@ -800,27 +836,40 @@ public class MainUi extends Application {
     }
 
     private VBox buildBottomArea() {
-        VBox box = new VBox(8); box.setAlignment(Pos.CENTER); box.setPadding(new Insets(8,20,16,20));
+        VBox box = new VBox(6); box.setAlignment(Pos.CENTER); box.setPadding(new Insets(6,16,12,16));
+        box.setMaxWidth(Double.MAX_VALUE);
         sevenBundleBar = new HBox(10); sevenBundleBar.setAlignment(Pos.CENTER); sevenBundleBar.setVisible(false); sevenBundleBar.setManaged(false);
-        handArea = new HBox(10); handArea.setAlignment(Pos.CENTER); handArea.setPadding(new Insets(8));
+
+        handArea = new HBox(8); handArea.setAlignment(Pos.CENTER); handArea.setPadding(new Insets(6));
         ScrollPane scroll = new ScrollPane(handArea);
-        scroll.setFitToHeight(true); scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.setFitToHeight(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
-        scroll.setPrefHeight(165); scroll.setMaxWidth(Double.MAX_VALUE);
-        HBox handPanel = new HBox(scroll); handPanel.setAlignment(Pos.CENTER);
-        handPanel.setBackground(new Background(new BackgroundFill(Color.color(0,0,0,0.3), new CornerRadii(12), Insets.EMPTY)));
-        handPanel.setPadding(new Insets(8)); HBox.setHgrow(scroll, Priority.ALWAYS); handPanel.setMaxWidth(Double.MAX_VALUE);
+        scroll.setPrefHeight(148);
+        scroll.setMinHeight(148);
+        scroll.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(scroll, Priority.ALWAYS);
+
+        HBox handPanel = new HBox(scroll);
+        handPanel.setAlignment(Pos.CENTER);
+        handPanel.setBackground(new Background(new BackgroundFill(Color.color(0,0,0,0.28), new CornerRadii(10), Insets.EMPTY)));
+        handPanel.setPadding(new Insets(6));
+        HBox.setHgrow(scroll, Priority.ALWAYS);
+        handPanel.setMaxWidth(Double.MAX_VALUE);
+
         drawBtn = buildActionButton("Draw Card","#2196F3","#1565C0");
         passBtn = buildActionButton("Pass Turn","#FF9800","#E65100");
         Button crazyBtn = buildActionButton("CRAZY!","#8e24aa","#6a1b9a");
 
-        // Wire buttons differently for online vs local
         drawBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) { if (penaltyActive) { client.acceptPenalty(); myTurn=false; penaltyActive=false; drawBtn.setText("Draw Card"); } else client.drawCard(); } else onDraw(); });
         passBtn.setOnAction(e -> { if (mode==GameMode.ONLINE_HOST||mode==GameMode.ONLINE_JOIN) client.pass(); else onPass(); });
         crazyBtn.setOnAction(e -> onCrazy());
 
-        HBox btnRow = new HBox(20, drawBtn, passBtn, crazyBtn); btnRow.setAlignment(Pos.CENTER);
+        HBox btnRow = new HBox(16, drawBtn, passBtn, crazyBtn);
+        btnRow.setAlignment(Pos.CENTER);
+        btnRow.setMinHeight(50);
+
         box.getChildren().addAll(sevenBundleBar, handPanel, btnRow);
         return box;
     }
@@ -931,6 +980,20 @@ public class MainUi extends Application {
     private TextField styledField(String def){TextField tf=new TextField(def);tf.setFont(Font.font("Verdana",14));tf.setMaxWidth(260);tf.setStyle("-fx-background-radius:8;-fx-padding:8;");return tf;}
     private Button buildActionButton(String text,String base,String hover){Button b=new Button(text);b.setFont(Font.font("Verdana",FontWeight.BOLD,13));b.setTextFill(Color.WHITE);b.setPrefWidth(145);b.setPrefHeight(40);b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY)));b.setEffect(new DropShadow(4,Color.BLACK));b.setOnMouseEntered(e->b.setBackground(new Background(new BackgroundFill(Color.web(hover),new CornerRadii(8),Insets.EMPTY))));b.setOnMouseExited(e->b.setBackground(new Background(new BackgroundFill(Color.web(base),new CornerRadii(8),Insets.EMPTY))));return b;}
     private Background feltBackground(){return new Background(new BackgroundFill(new LinearGradient(0,0,1,1,true,CycleMethod.NO_CYCLE,new Stop(0,FELT_DARK),new Stop(0.5,FELT_MID),new Stop(1,FELT_LIGHT)),CornerRadii.EMPTY,Insets.EMPTY));}
+
+    /** Wraps a VBox content page in a ScrollPane and sets it as the current scene root.
+     *  This ensures setup screens never clip content when the window is small. */
+    private void setScrollScene(VBox content) {
+        ScrollPane sp = new ScrollPane(content);
+        sp.setFitToWidth(true);
+        sp.setFitToHeight(true);
+        sp.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
+        if (primaryStage.getScene() == null) {
+            primaryStage.setScene(new Scene(sp, 1100, 750));
+        } else {
+            primaryStage.getScene().setRoot(sp);
+        }
+    }
 
     public static void main(String[] args){launch(args);}
 }
