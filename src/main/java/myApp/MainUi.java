@@ -187,10 +187,17 @@ public class MainUi extends Application {
         VBox card = new VBox(14);
         card.setAlignment(Pos.CENTER);
         card.setPadding(new Insets(28));
-        card.setPrefSize(210, 200);
         card.setBackground(new Background(new BackgroundFill(
                 Color.web(base), new CornerRadii(16), Insets.EMPTY)));
         card.setEffect(new DropShadow(10, Color.BLACK));
+        // Responsive size — binds to scene if available, otherwise fixed default
+        card.setPrefSize(210, 200);
+        card.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) {
+                card.prefWidthProperty().bind(scene.widthProperty().multiply(0.18));
+                card.prefHeightProperty().bind(scene.heightProperty().multiply(0.28));
+            }
+        });
 
         Label h = new Label(heading);
         h.setFont(Font.font("Georgia", FontWeight.BOLD, 18));
@@ -928,34 +935,72 @@ public class MainUi extends Application {
     //  SHARED UI BUILDERS
     // ═════════════════════════════════════════════════════════════════════════
 
+    // ── scene reference for responsive bindings ───────────────────────────────
+    private Scene gameScene;
+
     private BorderPane buildGameRoot() {
         BorderPane bp = new BorderPane();
         bp.setBackground(feltBackground());
         bp.setTop(buildTopBar());
 
-        // Centre: opponents top + discard in true centre
+        // Centre: opponents top + discard truly centred
         BorderPane centre = new BorderPane();
         centre.setBackground(new Background(new BackgroundFill(Color.TRANSPARENT, CornerRadii.EMPTY, Insets.EMPTY)));
 
-        // Opponents strip at the top of the centre area
         opponentBar = new HBox(24);
         opponentBar.setAlignment(Pos.CENTER);
         opponentBar.setPadding(new Insets(14, 20, 10, 20));
         centre.setTop(opponentBar);
 
-        // Discard pile truly centred
         discardArea = new StackPane();
         discardArea.setAlignment(Pos.CENTER);
-        discardArea.setPrefSize(130, 185);
         centre.setCenter(discardArea);
 
         bp.setCenter(centre);
-        VBox.setVgrow(centre, Priority.ALWAYS);
 
         VBox bottom = buildBottomArea();
-        bottom.setMinHeight(220);
         bp.setBottom(bottom);
+
+        // After scene is assigned, bind discard and bottom to window size
+        bp.sceneProperty().addListener((obs, old, scene) -> {
+            if (scene != null) {
+                gameScene = scene;
+                applyResponsiveBindings(scene, discardArea, bottom);
+                // Re-render hand cards when window is resized
+                scene.widthProperty().addListener((o, ov, nv) -> redrawCurrentHand());
+                scene.heightProperty().addListener((o, ov, nv) -> redrawCurrentHand());
+            }
+        });
+
         return bp;
+    }
+
+    /** Bind sizes of key layout elements to the scene dimensions. */
+    private void applyResponsiveBindings(Scene scene, StackPane discardArea, VBox bottom) {
+        discardArea.prefWidthProperty().bind(scene.widthProperty().multiply(0.11));
+        discardArea.prefHeightProperty().bind(scene.heightProperty().multiply(0.28));
+        bottom.minHeightProperty().bind(scene.heightProperty().multiply(0.30));
+        if (handArea != null) {
+            ScrollPane scroll = (ScrollPane) ((HBox) bottom.getChildren().get(1)).getChildren().get(0);
+            scroll.prefHeightProperty().bind(scene.heightProperty().multiply(0.20));
+            scroll.minHeightProperty().bind(scene.heightProperty().multiply(0.18));
+        }
+    }
+
+    /** Re-draws the current player's hand cards at the new scale after a resize. */
+    private void redrawCurrentHand() {
+        if (game == null || game.isGameOver() || handArea == null) return;
+        handArea.getChildren().clear();
+        for (Card card : game.getCard()) {
+            Pane node = buildCard(card, true, false);
+            node.setOnMouseClicked(e -> onCardClicked(card));
+            handArea.getChildren().add(node);
+        }
+        // Also re-render discard
+        if (discardArea != null && game.getTopCard() != null) {
+            discardArea.getChildren().clear();
+            discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
+        }
     }
 
     private VBox buildTopBar() {
@@ -1011,8 +1056,9 @@ public class MainUi extends Application {
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
+        // Default sizes — will be overridden by responsive bindings once scene is available
         scroll.setPrefHeight(148);
-        scroll.setMinHeight(148);
+        scroll.setMinHeight(130);
         scroll.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(scroll, Priority.ALWAYS);
 
@@ -1022,6 +1068,7 @@ public class MainUi extends Application {
         handPanel.setPadding(new Insets(6));
         HBox.setHgrow(scroll, Priority.ALWAYS);
         handPanel.setMaxWidth(Double.MAX_VALUE);
+        VBox.setVgrow(handPanel, Priority.ALWAYS);
 
         drawBtn = buildActionButton("Draw Card","#2196F3","#1565C0");
         passBtn = buildActionButton("Pass Turn","#FF9800","#E65100");
@@ -1086,8 +1133,27 @@ public class MainUi extends Application {
     //  CARD RENDERING
     // ═════════════════════════════════════════════════════════════════════════
 
+    /** Card width scales with window width. Clamped between 60% and 140% of base size. */
+    private double cardW(boolean isHand) {
+        double base = isHand ? 82 : 110;
+        if (gameScene == null) return base;
+        double scale = Math.max(0.65, Math.min(1.5, gameScene.getWidth() / 1100.0));
+        return base * scale;
+    }
+
+    /** Card height scales with window height. Clamped between 60% and 140% of base size. */
+    private double cardH(boolean isHand) {
+        double base = isHand ? 122 : 160;
+        if (gameScene == null) return base;
+        double scale = Math.max(0.65, Math.min(1.5, gameScene.getHeight() / 750.0));
+        return base * scale;
+    }
+
     private Pane buildCard(Card card, boolean isHand, boolean selected) {
-        double W=isHand?82:110, H=isHand?122:160, pip=isHand?11:15, rFont=isHand?15:20;
+        double W = cardW(isHand);
+        double H = cardH(isHand);
+        double pip = isHand ? H * 0.09 : H * 0.094;
+        double rFont = isHand ? H * 0.123 : H * 0.125;
         Pane pane = new Pane(); pane.setPrefSize(W,H); pane.setMinSize(W,H); pane.setMaxSize(W,H);
         Rectangle body = new Rectangle(1,1,W-2,H-2); body.setArcWidth(10); body.setArcHeight(10); body.setFill(CARD_WHITE);
         body.setEffect(new DropShadow(selected?16:7, selected?GOLD:Color.color(0,0,0,0.5)));
