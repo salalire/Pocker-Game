@@ -830,8 +830,60 @@ public class MainUi extends Application {
     }
 
     private void attemptPlay(Card card) {
-        if (game.playCard(card)) { lastPlayInvalid = false; afterSuccessfulPlay(card); }
-        else { lastPlayInvalid = true; statusLabel.setText("Invalid move! Others can say CRAZY to penalise you, or draw."); TranslateTransition tt = new TranslateTransition(Duration.millis(60), statusLabel); tt.setFromX(-6); tt.setToX(6); tt.setCycleCount(4); tt.setAutoReverse(true); tt.play(); }
+        if (game.playCard(card)) {
+            lastPlayInvalid = false;
+            afterSuccessfulPlay(card);
+        } else {
+            lastPlayInvalid = true;
+            statusLabel.setText("Invalid move!");
+            TranslateTransition tt = new TranslateTransition(Duration.millis(60), statusLabel);
+            tt.setFromX(-6); tt.setToX(6); tt.setCycleCount(4); tt.setAutoReverse(true); tt.play();
+
+            // In VS Computer mode, an AI opponent automatically calls CRAZY
+            if (mode == GameMode.VS_COMPUTER && hasAiOpponent()) {
+                String callerName = getRandomAiName();
+                javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(Duration.millis(800));
+                delay.setOnFinished(e -> {
+                    game.applyCrazyPenalty();
+                    lastPlayInvalid = false;
+                    statusLabel.setText(callerName + " says CRAZY! " +
+                            game.getCurrentPlayer().getName() + " draws 2 cards.");
+                    // Refresh hand in place — player still has their turn
+                    handArea.getChildren().clear();
+                    for (Card c : game.getCard()) {
+                        Pane node = buildCard(c, true, false);
+                        node.setOnMouseClicked(ev -> onCardClicked(c));
+                        handArea.getChildren().add(node);
+                    }
+                    updateOpponentLabels();
+                });
+                delay.play();
+            } else {
+                // Local multiplayer — human opponents can click CRAZY manually
+                statusLabel.setText("Invalid move! Others can say CRAZY to penalise you, or draw.");
+            }
+        }
+    }
+
+    /** Returns true if there is at least one AI player in the current game. */
+    private boolean hasAiOpponent() {
+        if (isAi == null) return false;
+        for (int i = 0; i < isAi.length; i++) {
+            if (isAi[i]) return true;
+        }
+        return false;
+    }
+
+    /** Returns the name of a random AI player to "call" CRAZY. */
+    private String getRandomAiName() {
+        if (isAi == null) return "CPU";
+        List<Player> players = game.getPlayers();
+        List<String> aiNames = new ArrayList<>();
+        for (int i = 0; i < isAi.length && i < players.size(); i++) {
+            if (isAi[i]) aiNames.add(players.get(i).getName());
+        }
+        if (aiNames.isEmpty()) return "CPU";
+        return aiNames.get((int)(Math.random() * aiNames.size()));
     }
 
     private void afterSuccessfulPlay(Card card) {
