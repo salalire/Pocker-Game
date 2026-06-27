@@ -68,11 +68,15 @@ public class AiPlayer {
 
             game.playCard(best);
 
-            // If wild card, pick most common suit in hand
+            // If wild card, pick suit that hurts opponents most (only if allowed)
             if (best.getOrder() == Order.EIGHT || best.getOrder() == Order.J) {
-                Suit chosen = pickBestSuit(ai);
-                game.setSuit(chosen);
-                return ai.getName() + " played " + best + " - chose " + chosen + ".";
+                if (game.canChangeSuit()) {
+                    Suit chosen = pickBestSuit(ai, game);
+                    game.setSuit(chosen);
+                    return ai.getName() + " played " + best + " - chose " + chosen + ".";
+                } else {
+                    return ai.getName() + " played " + best + " (suit change blocked - 3+ players rule).";
+                }
             }
 
             return ai.getName() + " played " + best + ".";
@@ -137,15 +141,32 @@ public class AiPlayer {
         return extras;
     }
 
-    /** Pick the suit the AI has the most of (to maximise future plays). */
-    private static Suit pickBestSuit(Player ai) {
-        int[] counts = new int[Suit.values().length];
-        for (Card c : ai.getHand()) {
-            counts[c.getSuit().ordinal()]++;
+    /** Pick the suit that opponents have the LEAST of — maximises their difficulty. */
+    private static Suit pickBestSuit(Player ai, Game game) {
+        List<Player> players = game.getPlayers();
+        int[] opponentCounts = new int[Suit.values().length];
+
+        // Count how many cards of each suit all opponents have combined
+        for (Player p : players) {
+            if (p == ai) continue;
+            for (Card c : p.getHand()) {
+                opponentCounts[c.getSuit().ordinal()]++;
+            }
         }
+
+        // Also factor in what the AI holds most of (want suits AI can play later)
+        int[] aiCounts = new int[Suit.values().length];
+        for (Card c : ai.getHand()) {
+            aiCounts[c.getSuit().ordinal()]++;
+        }
+
+        // Score = AI count - opponent count (higher = better for AI)
         int best = 0;
-        for (int i = 1; i < counts.length; i++)
-            if (counts[i] > counts[best]) best = i;
+        for (int i = 1; i < Suit.values().length; i++) {
+            if ((aiCounts[i] - opponentCounts[i]) > (aiCounts[best] - opponentCounts[best])) {
+                best = i;
+            }
+        }
         return Suit.values()[best];
     }
 }

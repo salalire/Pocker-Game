@@ -17,6 +17,7 @@ public class Game {
    private int pendingTwo=0;
    private boolean changePlay=false;
    private Suit forcedSuit=null;
+   private int suitChangedByPlayerIndex = -1; // tracks who last changed the suit (for cooldown rule)
     private boolean hasDrawn = false;
     private boolean gameOver=false;
     private Player winner=null;
@@ -165,10 +166,23 @@ public class Game {
 
     public void setSuit(Suit suit){
         this.forcedSuit=suit;
+        this.suitChangedByPlayerIndex = currentPlayerIndex;
     }
 
     public Suit getForcedSuit(){
         return forcedSuit;
+    }
+
+    /**
+     * Returns true if the current player is allowed to change the suit (play J/8).
+     * Rule: with 3+ players, you cannot change suit if you were the last one who changed it
+     * AND no one else has played or passed since then.
+     * With 2 players it is always allowed.
+     */
+    public boolean canChangeSuit(){
+        if (players.size() <= 2) return true;
+        // Allowed if suit was never changed, or someone else has played since
+        return suitChangedByPlayerIndex != currentPlayerIndex;
     }
 
 
@@ -365,7 +379,7 @@ public class Game {
     }
 
     public boolean playCard(Card card){
-        // Block all normal play when a penalty is pending — player must use defendWithTwo / acceptPenalty
+        // Block all normal play when a penalty is pending
         if (hasPendingPenalty()) return false;
 
         Player player=getCurrentPlayer();
@@ -384,6 +398,7 @@ public class Game {
             moveToNext();
             if (forcedSuit != null){
                 forcedSuit = null;
+                suitChangedByPlayerIndex = -1;
             }
             return true;
         }
@@ -453,6 +468,7 @@ public class Game {
         moveToNext();
         if (forcedSuit != null){
             forcedSuit = null;
+            suitChangedByPlayerIndex = -1;
         }
         return true;
     }

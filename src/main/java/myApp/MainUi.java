@@ -676,25 +676,30 @@ public class MainUi extends Application {
         if (game.isGameOver()) { showLocalWinner(); return; }
         int idx = game.getCurrentPlayerIndex();
         if (isAi != null && idx < isAi.length && isAi[idx]) {
-            javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(Duration.millis(1000));
-            pause.setOnFinished(e -> {
+            String aiName = game.getCurrentPlayer().getName();
+            if (playerNameLabel != null) playerNameLabel.setText(aiName + "'s Turn");
+            if (statusLabel != null) statusLabel.setText(aiName + " is thinking...");
+
+            // 1.5s delay so human can see who is playing, then 0.8s after to read the result
+            javafx.animation.PauseTransition think = new javafx.animation.PauseTransition(Duration.millis(1500));
+            think.setOnFinished(e -> {
+                if (game.isGameOver()) { showLocalWinner(); return; }
                 String result = AiPlayer.takeTurn(game);
-                // Always show what the AI did AND the new top card
-                String topInfo = "  |  Top card: " + game.getTopCard();
-                if (statusLabel != null) statusLabel.setText(result + topInfo);
-                // Update discard pile visually
+                if (statusLabel != null) statusLabel.setText(result + "   |   Top card: " + game.getTopCard());
+                if (directionLabel != null)
+                    directionLabel.setText(game.isReversed() ? "<<  Counter-Clockwise" : ">>  Clockwise");
                 if (discardArea != null) {
                     discardArea.getChildren().clear();
                     discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
                 }
-                if (directionLabel != null) {
-                    directionLabel.setText(game.isReversed() ? "<<  Counter-Clockwise" : ">>  Clockwise");
-                }
                 updateOpponentLabels();
                 if (game.isGameOver()) { showLocalWinner(); return; }
-                runAiTurnsIfNeeded();
+                // Pause so human can read the result before the next AI takes over
+                javafx.animation.PauseTransition read = new javafx.animation.PauseTransition(Duration.millis(900));
+                read.setOnFinished(ev -> runAiTurnsIfNeeded());
+                read.play();
             });
-            pause.play();
+            think.play();
         } else {
             refresh();
         }
@@ -792,7 +797,7 @@ public class MainUi extends Application {
     private void enterSevenBundleMode(Card seven) {
         pendingSevenCard = seven; sevenExtras.clear(); refreshHandHighlights();
         sevenBundleBar.getChildren().clear();
-        Label hint = new Label("7 selected — click same-suit extras, then click 7 again to play");
+        Label hint = new Label("7 selected - click same-suit extras to bundle (max 4), then click 7 again to play");
         hint.setTextFill(GOLD); hint.setFont(Font.font("Verdana", 12));
         Button cancel = new Button("Cancel");
         cancel.setStyle("-fx-background-color:#c0392b;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:6;");
@@ -831,7 +836,12 @@ public class MainUi extends Application {
 
     private void afterSuccessfulPlay(Card card) {
         if (card != null && (card.getOrder()==Order.EIGHT || card.getOrder()==Order.J)) {
-            Suit chosen = chooseSuit(); if (chosen != null) { game.setSuit(chosen); statusLabel.setText("Suit changed to " + chosen); }
+            if (game.canChangeSuit()) {
+                Suit chosen = chooseSuit();
+                if (chosen != null) { game.setSuit(chosen); statusLabel.setText("Suit changed to " + chosen); }
+            } else {
+                statusLabel.setText("Cannot change suit twice in a row with 3+ players.");
+            }
         }
         if (game.isGameOver()) { showLocalWinner(); return; }
         advanceTurn();
