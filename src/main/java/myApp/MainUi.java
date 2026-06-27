@@ -242,7 +242,7 @@ public class MainUi extends Application {
         aiCount.setPrefWidth(80);
         HBox aiRow = centreRow(aiLbl, aiCount);
 
-        Button start = buildActionButton("Start Game", "#2196F3", "#1565C0");
+        Button start = buildSetupButton("Start Game", "#1565C0");
         start.setOnAction(e -> {
             String name = humanName.getText().trim();
             if (name.isEmpty()) name = "You";
@@ -250,7 +250,7 @@ public class MainUi extends Application {
             startVsComputer(name, n);
         });
 
-        Button back = buildActionButton("Back", "#555555", "#333333");
+        Button back = buildSetupButton("Back", "#555555");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(humanRow, aiRow, start, back);
@@ -304,7 +304,7 @@ public class MainUi extends Application {
         rebuild.run();
         countSpin.valueProperty().addListener((o,v,n) -> rebuild.run());
 
-        Button start = buildActionButton("Start Game", "#27ae60", "#1e8449");
+        Button start = buildSetupButton("Start Game", "#1e8449");
         start.setOnAction(e -> {
             game = new Game();
             isAi = new boolean[fields.size()];
@@ -319,7 +319,7 @@ public class MainUi extends Application {
             showHandOff(game.getCurrentPlayer().getName(), () -> refresh());
         });
 
-        Button back = buildActionButton("Back", "#555555", "#333333");
+        Button back = buildSetupButton("Back", "#555555");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(countLbl, countSpin), nameFields, start, back);
@@ -360,7 +360,7 @@ public class MainUi extends Application {
         Label statusLbl = new Label("Press Start to begin hosting...");
         statusLbl.setTextFill(Color.LIGHTGRAY); statusLbl.setFont(Font.font("Verdana", 12));
 
-        Button start = buildActionButton("Start Hosting", "#e67e22", "#ca6f1e");
+        Button start = buildSetupButton("Start Hosting", "#ca6f1e");
         start.setOnAction(e -> {
             myName = nameFld.getText().trim().isEmpty() ? "Host" : nameFld.getText().trim();
             int total = countSpin.getValue();
@@ -376,7 +376,7 @@ public class MainUi extends Application {
             }
         });
 
-        Button back = buildActionButton("Back", "#555555", "#333333");
+        Button back = buildSetupButton("Back", "#555555");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(myNameLbl, nameFld),
@@ -403,7 +403,7 @@ public class MainUi extends Application {
         Label statusLbl = new Label("");
         statusLbl.setTextFill(Color.LIGHTCYAN); statusLbl.setFont(Font.font("Verdana", 12));
 
-        Button join = buildActionButton("Join Game", "#8e44ad", "#6c3483");
+        Button join = buildSetupButton("Join Game", "#6c3483");
         join.setOnAction(e -> {
             myName = nameFld.getText().trim().isEmpty() ? "Player" : nameFld.getText().trim();
             String ip = ipFld.getText().trim();
@@ -413,7 +413,7 @@ public class MainUi extends Application {
             connectAsOnlinePlayer(myName, ip, statusLbl);
         });
 
-        Button back = buildActionButton("Back", "#555555", "#333333");
+        Button back = buildSetupButton("Back", "#555555");
         back.setOnAction(e -> showModeSelect());
 
         page.getChildren().addAll(centreRow(nameLbl, nameFld),
@@ -614,12 +614,37 @@ public class MainUi extends Application {
         if (game.hasPendingPenalty()) { showPenaltyPrompt(); return; }
 
         playerNameLabel.setText(current.getName() + "'s Turn");
-        statusLabel.setText("Top card: " + game.getTopCard());
+
+        // Show forced suit prominently if J or 8 is on top
+        Suit forced = game.getForcedSuit();
+        Card top = game.getTopCard();
+        if (forced != null) {
+            statusLabel.setText("Top card: " + top + "   |   Active suit: " + suitBadge(forced));
+            statusLabel.setTextFill(Color.web(forced == Suit.Hearts || forced == Suit.Diamonds ? "#ff6b6b" : "#a0d8ef"));
+        } else if (top.getOrder() == Order.EIGHT || top.getOrder() == Order.J) {
+            statusLabel.setText("Top card: " + top + "   |   Wild card played - suit may change!");
+            statusLabel.setTextFill(Color.LIGHTYELLOW);
+        } else {
+            statusLabel.setText("Top card: " + top);
+            statusLabel.setTextFill(Color.LIGHTYELLOW);
+        }
         directionLabel.setText(game.isReversed() ? "<<  Counter-Clockwise" : ">>  Clockwise");
 
-        // Update discard pile — centred on the table
         discardArea.getChildren().clear();
         discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
+
+        // If suit is forced, overlay a suit indicator on the discard area
+        if (forced != null) {
+            Label suitIndicator = new Label(suitBadge(forced));
+            suitIndicator.setFont(Font.font("Verdana", FontWeight.BOLD, 13));
+            suitIndicator.setTextFill(Color.WHITE);
+            suitIndicator.setBackground(new Background(new BackgroundFill(
+                    Color.color(0,0,0,0.65), new CornerRadii(6), Insets.EMPTY)));
+            suitIndicator.setPadding(new Insets(3, 8, 3, 8));
+            StackPane.setAlignment(suitIndicator, Pos.BOTTOM_CENTER);
+            StackPane.setMargin(suitIndicator, new Insets(0, 0, -18, 0));
+            discardArea.getChildren().add(suitIndicator);
+        }
 
         updateOpponentLabels();
 
@@ -634,6 +659,16 @@ public class MainUi extends Application {
         }
         drawBtn.setText("Draw Card"); drawBtn.setOnAction(e -> onDraw());
         drawBtn.setDisable(false); passBtn.setDisable(false);
+    }
+
+    /** Returns a short text badge showing the suit name e.g. "Hearts" */
+    private static String suitBadge(Suit suit) {
+        return switch (suit) {
+            case Hearts   -> "Active suit: Hearts";
+            case Diamonds -> "Active suit: Diamonds";
+            case Spades   -> "Active suit: Spades";
+            case Clubs    -> "Active suit: Clubs";
+        };
     }
 
     /** After each human move, auto-run all consecutive AI turns. */
@@ -688,7 +723,7 @@ public class MainUi extends Application {
         Label hint = new Label("Press the button when ready to see your cards.");
         hint.setFont(Font.font("Verdana", 13)); hint.setTextFill(Color.LIGHTGRAY);
         hint.setWrapText(true); hint.setTextAlignment(TextAlignment.CENTER);
-        Button readyBtn = buildActionButton("I'm Ready — Show My Cards", "#27ae60", "#1e8449");
+        Button readyBtn = buildActionButton("I'm Ready - Show My Cards", "#27ae60", "#1e8449");
         readyBtn.setPrefWidth(310);
         readyBtn.setOnAction(e -> { primaryStage.getScene().setRoot(root); onReady.run(); });
         box.getChildren().addAll(msg, name, hint, readyBtn);
@@ -970,7 +1005,9 @@ public class MainUi extends Application {
         box.setMaxWidth(480); box.setMaxHeight(340);
         Label win = new Label(name + " Wins!"); win.setFont(Font.font("Georgia", FontWeight.BOLD, 38)); win.setTextFill(GOLD); win.setEffect(new DropShadow(10, GOLD_DARK));
         Label sub = new Label("Congratulations!"); sub.setFont(Font.font("Verdana", 18)); sub.setTextFill(Color.WHITE);
-        Button again = buildActionButton("Main Menu", "#27ae60", "#1e8449"); again.setPrefWidth(180); again.setOnAction(e -> { if(server!=null){server.stop();server=null;} if(client!=null){client.disconnect();client=null;} showModeSelect(); });
+        Button again = buildSetupButton("Main Menu", "#1e8449");
+        again.setPrefWidth(180);
+        again.setOnAction(e -> { if(server!=null){server.stop();server=null;} if(client!=null){client.disconnect();client=null;} showModeSelect(); });
         box.getChildren().addAll(win, sub, again); sp.getChildren().add(box); return sp;
     }
 
@@ -1037,6 +1074,20 @@ public class MainUi extends Application {
     }
     private HBox centreRow(javafx.scene.Node... nodes){HBox r=new HBox(10);r.setAlignment(Pos.CENTER);r.getChildren().addAll(nodes);return r;}
     private TextField styledField(String def){TextField tf=new TextField(def);tf.setFont(Font.font("Verdana",14));tf.setMaxWidth(260);tf.setStyle("-fx-background-radius:8;-fx-padding:8;");return tf;}
+
+    /** Buttons inside setup screens — white background, dark text, clear and readable on the felt. */
+    private Button buildSetupButton(String text, String textColor) {
+        Button b = new Button(text);
+        b.setFont(Font.font("Verdana", FontWeight.BOLD, 13));
+        b.setTextFill(Color.web(textColor));
+        b.setPrefWidth(180);
+        b.setPrefHeight(42);
+        b.setBackground(new Background(new BackgroundFill(Color.web("#ffffff"), new CornerRadii(10), Insets.EMPTY)));
+        b.setEffect(new DropShadow(5, Color.color(0,0,0,0.35)));
+        b.setOnMouseEntered(e -> b.setBackground(new Background(new BackgroundFill(Color.web("#e0e0e0"), new CornerRadii(10), Insets.EMPTY))));
+        b.setOnMouseExited( e -> b.setBackground(new Background(new BackgroundFill(Color.web("#ffffff"), new CornerRadii(10), Insets.EMPTY))));
+        return b;
+    }
     private Button buildActionButton(String text,String base,String hover){
         Button b=new Button(text);
         b.setFont(Font.font("Verdana",FontWeight.BOLD,13));

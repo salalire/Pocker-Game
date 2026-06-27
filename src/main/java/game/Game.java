@@ -167,6 +167,10 @@ public class Game {
         this.forcedSuit=suit;
     }
 
+    public Suit getForcedSuit(){
+        return forcedSuit;
+    }
+
 
 
     public void moveToNext(){
