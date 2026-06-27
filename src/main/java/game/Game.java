@@ -266,8 +266,9 @@ public class Game {
     }
 
     /**
-     * Current player accepts the penalty (draws cards) and their turn ends.
-     * Moves to next player automatically.
+     * Current player accepts the penalty (draws the penalty cards).
+     * The turn does NOT advance — the player still gets to play their turn after drawing.
+     * The UI should call refresh() after this so the player can play, draw one, or pass.
      */
     public void acceptPenalty() {
         Player player = getCurrentPlayer();
@@ -289,7 +290,7 @@ public class Game {
             pendingTwo = 0;
         }
         hasDrawn = false;
-        moveToNext();
+        // NOTE: moveToNext() intentionally removed — player plays their turn after drawing
     }
 
 

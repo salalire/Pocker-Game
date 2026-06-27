@@ -764,7 +764,16 @@ public class MainUi extends Application {
         }
         drawBtn.setText("Accept (" + amount + " cards)");
         drawBtn.setDisable(false);
-        drawBtn.setOnAction(e -> { game.acceptPenalty(); drawBtn.setText("Draw Card"); drawBtn.setOnAction(ev -> onDraw()); if (game.isGameOver()) { showLocalWinner(); return; } advanceTurn(); });
+        drawBtn.setOnAction(e -> {
+            game.acceptPenalty();
+            drawBtn.setText("Draw Card");
+            drawBtn.setOnAction(ev -> onDraw());
+            if (game.isGameOver()) { showLocalWinner(); return; }
+            // Stay on this player's turn — they get to play after drawing penalty
+            statusLabel.setText("Penalty accepted. Play a card, draw one more, or pass.");
+            statusLabel.setTextFill(Color.LIGHTYELLOW);
+            refresh();
+        });
         passBtn.setDisable(true);
     }
 

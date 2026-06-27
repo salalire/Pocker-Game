@@ -35,10 +35,20 @@ public class AiPlayer {
                     return ai.getName() + " stacked a 2 (penalty now " + game.getPendingPenalty() + ")!";
                 }
             }
-            // No defence — accept penalty
+            // No defence — accept penalty (draw cards), then continue turn
             int amount = game.getPendingPenalty();
             game.acceptPenalty();
-            return ai.getName() + " drew " + amount + " penalty cards.";
+            // Now try to play a card with the newly drawn hand
+            Card best = pickBestCard(game, ai);
+            if (best != null) {
+                game.playCard(best);
+                return ai.getName() + " drew " + amount + " penalty cards, then played " + best + ".";
+            }
+            // Nothing to play — draw one and pass
+            game.drawForCurrentPlayer();
+            game.setHasDrawn(false);
+            game.moveToNext();
+            return ai.getName() + " drew " + amount + " penalty cards and passed.";
         }
 
         // Pick the best card to play

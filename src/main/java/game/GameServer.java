@@ -252,9 +252,12 @@ public class GameServer {
                 case "ACCEPT_PENALTY" -> {
                     if (!isMyTurn()) { send("MSG|Not your turn."); return; }
                     game.acceptPenalty();
+                    // Player stays in their turn after drawing penalty cards
                     broadcastState();
                     sendHandToAll();
-                    notifyCurrentPlayer();
+                    // Tell this player it's still their turn (penalty cleared, now play normally)
+                    send("YOUR_TURN");
+                    send("MSG|Penalty accepted. Play a card, draw one more, or pass.");
                 }
                 case "CHOOSE_SUIT" -> {
                     game.setSuit(Suit.valueOf(parts[1]));
