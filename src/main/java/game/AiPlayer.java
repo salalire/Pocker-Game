@@ -62,7 +62,7 @@ public class AiPlayer {
             if (best.getOrder() == Order.EIGHT || best.getOrder() == Order.J) {
                 Suit chosen = pickBestSuit(ai);
                 game.setSuit(chosen);
-                return ai.getName() + " played " + best + " — chose " + chosen + ".";
+                return ai.getName() + " played " + best + " - chose " + chosen + ".";
             }
 
             return ai.getName() + " played " + best + ".";

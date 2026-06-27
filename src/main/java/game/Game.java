@@ -196,6 +196,19 @@ public class Game {
 
 
     public boolean isValidMove(Card card){
+        // If a penalty is active, the ONLY valid moves are the defence responses.
+        // Human players: the UI already blocks this via showPenaltyPrompt.
+        // AI players: AiPlayer.takeTurn handles this path separately.
+        // This guard is the safety net for any direct playCard() call during penalty.
+        if (activeTwo) {
+            // Only a 2 of any suit can be played to stack the penalty
+            return card.getOrder() == Order.TWO;
+        }
+        if (activeAce) {
+            // Only 2 of Spades can be played to defend the Ace of Spades
+            return card.getOrder() == Order.TWO && card.getSuit() == Suit.Spades;
+        }
+
         if (card.getOrder()==Order.EIGHT||card.getOrder()==Order.J) return true;
         if (forcedSuit!=null){
             return card.getSuit()==forcedSuit||card.getOrder()==topCard.getOrder();
@@ -351,6 +364,9 @@ public class Game {
     }
 
     public boolean playCard(Card card){
+        // Block all normal play when a penalty is pending — player must use defendWithTwo / acceptPenalty
+        if (hasPendingPenalty()) return false;
+
         Player player=getCurrentPlayer();
         if (isValidMove(card)){
             player.dropCard(card);
@@ -369,7 +385,6 @@ public class Game {
                 forcedSuit = null;
             }
             return true;
-
         }
         return false;
     }
