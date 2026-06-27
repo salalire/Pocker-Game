@@ -118,8 +118,8 @@ public class MainUi extends Application {
         this.primaryStage = stage;
         stage.setTitle("Crazy Card Game");
         stage.setResizable(true);
-        stage.setMinWidth(900);
-        stage.setMinHeight(650);
+        stage.setMinWidth(800);
+        stage.setMinHeight(560);
         showModeSelect();
         stage.show();
     }
@@ -961,30 +961,23 @@ public class MainUi extends Application {
         VBox bottom = buildBottomArea();
         bp.setBottom(bottom);
 
-        // After scene is assigned, bind discard and bottom to window size
+        // Bind discard size and re-render on resize. No percentage min-height on bottom.
         bp.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
                 gameScene = scene;
-                applyResponsiveBindings(scene, discardArea, bottom);
-                // Re-render hand cards when window is resized
+                discardArea.prefWidthProperty().bind(scene.widthProperty().multiply(0.12));
+                discardArea.prefHeightProperty().bind(scene.heightProperty().multiply(0.30));
+                // Hand scroll adapts but never below 110px so cards stay visible
+                if (handArea != null) {
+                    ScrollPane scroll = (ScrollPane)((HBox)bottom.getChildren().get(1)).getChildren().get(0);
+                    scroll.prefHeightProperty().bind(scene.heightProperty().multiply(0.20));
+                }
                 scene.widthProperty().addListener((o, ov, nv) -> redrawCurrentHand());
                 scene.heightProperty().addListener((o, ov, nv) -> redrawCurrentHand());
             }
         });
 
         return bp;
-    }
-
-    /** Bind sizes of key layout elements to the scene dimensions. */
-    private void applyResponsiveBindings(Scene scene, StackPane discardArea, VBox bottom) {
-        discardArea.prefWidthProperty().bind(scene.widthProperty().multiply(0.11));
-        discardArea.prefHeightProperty().bind(scene.heightProperty().multiply(0.28));
-        bottom.minHeightProperty().bind(scene.heightProperty().multiply(0.30));
-        if (handArea != null) {
-            ScrollPane scroll = (ScrollPane) ((HBox) bottom.getChildren().get(1)).getChildren().get(0);
-            scroll.prefHeightProperty().bind(scene.heightProperty().multiply(0.20));
-            scroll.minHeightProperty().bind(scene.heightProperty().multiply(0.18));
-        }
     }
 
     /** Re-draws the current player's hand cards at the new scale after a resize. */
@@ -996,7 +989,6 @@ public class MainUi extends Application {
             node.setOnMouseClicked(e -> onCardClicked(card));
             handArea.getChildren().add(node);
         }
-        // Also re-render discard
         if (discardArea != null && game.getTopCard() != null) {
             discardArea.getChildren().clear();
             discardArea.getChildren().add(buildCard(game.getTopCard(), false, false));
@@ -1056,9 +1048,9 @@ public class MainUi extends Application {
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setStyle("-fx-background:transparent;-fx-background-color:transparent;");
-        // Default sizes — will be overridden by responsive bindings once scene is available
-        scroll.setPrefHeight(148);
-        scroll.setMinHeight(130);
+        // Fixed minimum — small enough to always leave room for the buttons below
+        scroll.setPrefHeight(130);
+        scroll.setMinHeight(100);
         scroll.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(scroll, Priority.ALWAYS);
 
@@ -1068,7 +1060,6 @@ public class MainUi extends Application {
         handPanel.setPadding(new Insets(6));
         HBox.setHgrow(scroll, Priority.ALWAYS);
         handPanel.setMaxWidth(Double.MAX_VALUE);
-        VBox.setVgrow(handPanel, Priority.ALWAYS);
 
         drawBtn = buildActionButton("Draw Card","#2196F3","#1565C0");
         passBtn = buildActionButton("Pass Turn","#FF9800","#E65100");
@@ -1080,9 +1071,12 @@ public class MainUi extends Application {
 
         HBox btnRow = new HBox(16, drawBtn, passBtn, crazyBtn);
         btnRow.setAlignment(Pos.CENTER);
-        btnRow.setMinHeight(50);
+        btnRow.setMinHeight(48);
+        btnRow.setMaxHeight(56);
 
         box.getChildren().addAll(sevenBundleBar, handPanel, btnRow);
+        // The box itself has a hard maximum so it never pushes buttons off screen
+        box.setMaxHeight(240);
         return box;
     }
 
